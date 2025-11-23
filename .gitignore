@@ -1,21 +1,14 @@
-# Python-generated files
-__pycache__/
-*.py[oc]
-build/
-dist/
-wheels/
-*.egg-info
+### LLM Council Ignore Configuration (Next.js, current state)
 
-# Virtual environments
-.venv
+# Node / Next.js build artifacts
+node_modules/
+.next/
 
-# Keys and secrets
+# Environment & secrets (present in this repo)
 .env
+.env.local
 
-# Data files
-data/
-
-# Frontend
-frontend/node_modules/
-frontend/dist/
-frontend/.vite/
+# OS / editor noise
+.DS_Store
+Thumbs.db
+*.log
