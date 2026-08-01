@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- LLM Council mark: seats in a ring around the table; amber seat = chairman,
+       soft center = the synthesized answer. -->
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="42%" r="65%">
+      <stop offset="0%" stop-color="#33417a"/>
+      <stop offset="100%" stop-color="#1a2340"/>
+    </radialGradient>
+  </defs>
+  <circle cx="512" cy="512" r="512" fill="url(#bg)"/>
+  <!-- table -->
+  <circle cx="512" cy="512" r="310" fill="none" stroke="#ffffff" stroke-opacity="0.14" stroke-width="22"/>
+  <!-- synthesis -->
+  <circle cx="512" cy="512" r="72" fill="#ffffff" fill-opacity="0.22"/>
+  <!-- seats -->
+  <circle cx="512" cy="202" r="98" fill="#f0b429"/>
+  <circle cx="780" cy="357" r="80" fill="#e8ecf5"/>
+  <circle cx="780" cy="667" r="80" fill="#e8ecf5"/>
+  <circle cx="512" cy="822" r="80" fill="#e8ecf5"/>
+  <circle cx="244" cy="667" r="80" fill="#e8ecf5"/>
+  <circle cx="244" cy="357" r="80" fill="#e8ecf5"/>
+</svg>
