@@ -11,6 +11,22 @@ const btn = { padding:'5px 12px', border:'1px solid #c9d1d9', borderRadius:6, ba
 const btnPrimary = { ...btn, background:'#1e242c', borderColor:'#1e242c', color:'#fff' };
 const btnQuiet = { ...btn, borderColor:'transparent', background:'transparent', color:'#555' };
 
+// Panel widths are shared with the guide strip so each guide column sits
+// directly above the panel it explains. Order = the workflow:
+// pick conversationalists -> start conversation -> deliberate -> read the flow.
+const PANEL_SEATS = 300;
+const PANEL_CONVOS = 260;
+const PANEL_FLOW = 400;
+
+// Workflow step marker, used in the guide and on each panel heading.
+function Step({ n }) {
+  return <span style={{
+    display:'inline-flex', alignItems:'center', justifyContent:'center',
+    width:17, height:17, borderRadius:'50%', background:'#1e242c', color:'#fff',
+    fontSize:10, fontWeight:700, flexShrink:0
+  }}>{n}</span>;
+}
+
 export default function HomePage() {
   // Auth state: null = loading; me.status routes between login/enroll/app screens
   const [me, setMe] = useState(null);
@@ -258,31 +274,38 @@ export default function HomePage() {
           </div>
         )}
       </header>
-      {/* Guide strip */}
+      {/* Guide strip — columns sit directly above the panel each one describes */}
       {showGuide && (
-        <div style={{display:'flex', gap:20, alignItems:'flex-start', padding:'10px 20px', borderBottom:'1px solid #e6eaee', background:'#f7f9fb', fontSize:12, lineHeight:'17px'}}>
-          <div style={{flex:1, minWidth:0}}>
-            <strong>1 · Conversations</strong><br/>
-            A conversation is one titled session with the council. Creating it snapshots your current seats; its transcript fills the middle panel, the flow diagram on the right.
+        <div style={{display:'flex', alignItems:'stretch', borderBottom:'1px solid #e6eaee', background:'#f7f9fb', fontSize:12, lineHeight:'17px'}}>
+          <div style={{width:PANEL_SEATS, flexShrink:0, padding:'10px 14px', borderRight:'1px solid #e6eaee'}}>
+            <Step n={1}/> <strong>Pick your conversationalists</strong><br/>
+            Each seat holds one model and <strong>seat 1 chairs</strong>. Click a seat to change its model{me.group?.models?.length ? ' (your group sets the catalog)' : ''}, <em>+ Add Seat</em> for more (up to 7), <em>×</em> to remove.
           </div>
-          <div style={{flex:1, minWidth:0}}>
-            <strong>2 · Conversationalists = seats</strong><br/>
-            Each seat holds one model. <strong>Seat 1 is the chairman</strong> — it writes the final synthesized answer after the others weigh in.
+          <div style={{width:PANEL_CONVOS, flexShrink:0, padding:'10px 14px', borderRight:'1px solid #e6eaee'}}>
+            <Step n={2}/> <strong>Start a conversation</strong><br/>
+            A titled session that <em>snapshots</em> those seats. Come back to any of them here; change one session's seats with <em>Edit Seats</em> above the chat.
           </div>
-          <div style={{flex:1, minWidth:0}}>
-            <strong>3 · Add / remove a seat</strong><br/>
-            Left panel: <em>+ Add Seat</em> (up to 7) or <em>×</em> sets the seats for <em>new</em> conversations. For the current one, use <em>Edit Seats</em> at the top of the chat, then Save.
+          <div style={{flex:1, minWidth:0, padding:'10px 14px', borderRight:'1px solid #e6eaee'}}>
+            <Step n={3}/> <strong>Ask — the council deliberates</strong><br/>
+            Every seat answers independently, then ranks the others' answers anonymously, then the chairman synthesizes the final word. The transcript lands here.
           </div>
-          <div style={{flex:1, minWidth:0}}>
-            <strong>4 · Change a seat's model</strong><br/>
-            Click the seat pill and pick from the list{me.group?.models?.length ? ' (your group limits the catalog)' : ''}. Then ask a question — every seat answers, they rank each other anonymously, the chairman concludes.
+          <div style={{width:PANEL_FLOW, flexShrink:0, padding:'10px 14px'}}>
+            <Step n={4}/> <strong>Watch the council flow</strong><br/>
+            The diagram traces each stage live: prompt → individual responses → peer rankings → aggregate → synthesis.
           </div>
         </div>
       )}
       <div style={{ display:'flex', flex:1, minHeight:0 }}>
-      {/* Conversations Panel */}
-      <div style={{ width:260, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
-        <h3 style={{margin:'0 0 2px'}}>Conversations</h3>
+      {/* 1 · Conversationalists Panel */}
+      <div style={{ width:PANEL_SEATS, flexShrink:0, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fff' }}>
+        <h3 style={{margin:'0 0 2px', display:'flex', alignItems:'center', gap:7}}><Step n={1}/> Conversationalists</h3>
+        <div style={{fontSize:11, opacity:0.6, marginBottom:8}}>default seats for new conversations — seat 1 chairs</div>
+        <ModelRing value={selectedModelsForNew} onChange={setSelectedModelsForNew} editable={true} showSeatNumbers={true} />
+        <div style={{fontSize:11, opacity:0.55, marginTop:14}}>These seats apply to the next conversation you start. The active conversation's seats sit above the chat.</div>
+      </div>
+      {/* 2 · Conversations Panel */}
+      <div style={{ width:PANEL_CONVOS, flexShrink:0, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
+        <h3 style={{margin:'0 0 2px', display:'flex', alignItems:'center', gap:7}}><Step n={2}/> Conversations</h3>
         <div style={{fontSize:11, opacity:0.6, marginBottom:10}}>your sessions with the council</div>
         <button onClick={() => createConversation(selectedModelsForNew)} style={{...btnPrimary, marginBottom:12, width:'100%'}}>+ New Conversation</button>
         {offline && <div style={{color:'#b36b00', fontSize:12, marginBottom:8}}>API unreachable. Retrying...</div>}
@@ -300,22 +323,17 @@ export default function HomePage() {
               }}>{c.title || 'Untitled'} <span style={{opacity:0.6, fontWeight:400}}>({c.message_count})</span></button>
             </li>
           ))}
+          {!conversations.length && <li style={{fontSize:11, opacity:0.6}}>None yet — start one above.</li>}
         </ul>
       </div>
-      {/* Conversationalists Panel */}
-      <div style={{ width:300, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fff' }}>
-        <h3 style={{margin:'0 0 2px'}}>Conversationalists</h3>
-        <div style={{fontSize:11, opacity:0.6, marginBottom:8}}>default seats for new conversations — seat 1 chairs</div>
-        <ModelRing value={selectedModelsForNew} onChange={setSelectedModelsForNew} editable={true} showSeatNumbers={true} />
-        <div style={{fontSize:11, opacity:0.55, marginTop:14}}>The active conversation's seats appear at the top of the chat panel.</div>
-      </div>
-      {/* Messages Panel */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#fafafa' }}>
+      {/* 3 · Messages Panel */}
+      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', background:'#fafafa' }}>
         {currentConversation ? (
           <>
             {/* This conversation: title + seats */}
             <div style={{padding:'10px 16px', borderBottom:'1px solid #e5e5e5', background:'#fff'}}>
-              <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:8}}>
+              <div style={{display:'flex', alignItems:'center', gap:10, marginBottom:8}}>
+                <Step n={3}/>
                 <strong style={{fontSize:14}}>{currentConversation.title || 'Untitled'}</strong>
                 <span style={{fontSize:11, opacity:0.55}}>this conversation's seats</span>
                 <div style={{flex:1}}/>
@@ -371,7 +389,9 @@ export default function HomePage() {
           <div style={{padding:32, maxWidth:560}}>
             <h3 style={{margin:'0 0 6px'}}>Welcome{firstName ? `, ${firstName}` : ''}.</h3>
             <p style={{fontSize:13, margin:'0 0 14px', opacity:0.8}}>
-              Convene a council: check the seats in the Conversationalists panel, then start a conversation.
+              Convene a council in two steps: <strong>1</strong> set the seats in the Conversationalists panel,
+              then <strong>2</strong> start a conversation. Your question and the council's deliberation land here;
+              the flow diagram tracks it on the right.
               Not sure what anything means? {showGuide ? 'See the guide above.' : (
                 <>Use <button onClick={toggleGuide} style={{...btnQuiet, padding:0, textDecoration:'underline', fontSize:13}}>Show guide</button> in the header.</>
               )}
@@ -381,8 +401,10 @@ export default function HomePage() {
           </div>
         )}
       </div>
-      {/* Visualization Panel */}
-      <div style={{ width:400, borderLeft:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
+      {/* 4 · Visualization Panel */}
+      <div style={{ width:PANEL_FLOW, flexShrink:0, borderLeft:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
+        <h3 style={{margin:'0 0 2px', display:'flex', alignItems:'center', gap:7}}><Step n={4}/> Council flow</h3>
+        <div style={{fontSize:11, opacity:0.6, marginBottom:10}}>prompt → responses → rankings → synthesis</div>
         <FlowDiagram conversation={currentConversation} />
         <SankeyCouncil conversation={currentConversation} />
       </div>
