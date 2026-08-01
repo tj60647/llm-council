@@ -24,8 +24,8 @@ export default function HomePage() {
       const res = await fetch('/api/conversations');
       if (!res.ok) throw new Error('Failed to list conversations');
       const data = await res.json();
-      console.log('[listConversations] received', data.length, 'items');
-      setConversations(data);
+      console.log('[listConversations] received', (data.conversations || []).length, 'items');
+      setConversations(data.conversations || []);
       setOffline(false);
     } catch (e) {
       setError(e.message);
@@ -38,10 +38,11 @@ export default function HomePage() {
       const res = await fetch('/api/conversations', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ models }) });
       if (!res.ok) throw new Error('Failed to create conversation');
       const data = await res.json();
-      console.log('[createConversation] created id:', data.id, 'metadata:', data.metadata);
-      setConversations(prev => [data.metadata, ...prev]);
-      setCurrentConversation(data);
-      setTempModels(data.models || []);
+      const conversation = data.conversation;
+      console.log('[createConversation] created id:', conversation.id, 'metadata:', conversation.metadata);
+      setConversations(prev => [conversation.metadata, ...prev]);
+      setCurrentConversation(conversation);
+      setTempModels(conversation.models || []);
     } catch (e) { setError(e.message); }
   }
 

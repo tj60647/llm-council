@@ -11,8 +11,8 @@ export const runtime = 'nodejs';
 function sse(obj) { return `data: ${JSON.stringify(obj)}\n\n`; }
 
 // Next.js dynamic route context may be async; await context before using params
-export async function POST(req, context) {
-    const { params } = await context; // ensure params resolved on newer Next versions
+export async function POST(req, props) {
+    const params = await props.params;
     const { content } = await req.json();
     const conversationId = params?.id;
     const c = conversationId ? getConversation(conversationId) : null;

@@ -8,7 +8,8 @@ import { generateTitle } from '../../../../../lib/council/generateTitle.js';
 
 export const runtime = 'nodejs';
 
-export async function POST(req, { params }) {
+export async function POST(req, props) {
+    const params = await props.params;
     const { content } = await req.json();
     const c = getConversation(params.id);
     if (!c) return NextResponse.json({ error: 'Not found' }, { status: 404 });

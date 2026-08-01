@@ -3,6 +3,8 @@ import { NextResponse } from 'next/server';
 let cache = { ts: 0, data: null };
 const TTL_MS = 15 * 60 * 1000; // 15 minutes
 
+export function resetCache() { cache = { ts: 0, data: null }; }
+
 export async function GET() {
     const now = Date.now();
     if (cache.data && (now - cache.ts) < TTL_MS) {
