@@ -1,9 +1,18 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
   <!-- LLM Council mark: differently-shaped members around a round table,
-       black outlines, monochromatic blue-grey fills. Large circle = chairman. -->
+       dashed arcs = deliberation in progress. Large circle = chairman. -->
   <rect width="1024" height="1024" fill="#ffffff"/>
   <!-- table -->
   <circle cx="512" cy="512" r="310" fill="none" stroke="#1e242c" stroke-opacity="0.22" stroke-width="10"/>
+  <!-- deliberation: members arguing their case to the chair, plus cross-talk -->
+  <g fill="none" stroke="#1e242c" stroke-opacity="0.32" stroke-width="8" stroke-dasharray="24 20" stroke-linecap="round">
+    <path d="M244,357 Q425,361 512,202"/>
+    <path d="M780,357 Q599,361 512,202"/>
+    <path d="M244,667 Q425,462 512,202"/>
+    <path d="M780,667 Q599,462 512,202"/>
+    <path d="M512,822 Q572,512 512,202"/>
+    <path d="M244,667 Q512,590 780,667"/>
+  </g>
   <g stroke="#1e242c" stroke-width="12" stroke-linejoin="round">
     <!-- chairman -->
     <circle cx="512" cy="202" r="96" fill="#8fa3b8"/>
