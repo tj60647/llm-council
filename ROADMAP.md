@@ -59,10 +59,19 @@ Stacked causes — each alone was fatal:
 - [x] `maxDuration = 300`; SSE chunks properly byte-encoded.
 - [x] Title generation goes through the storage adapter (was memory-only
       side effect); `title_complete` now updates the sidebar live.
-- [ ] **User action**: create Upstash Redis via Vercel Marketplace (sets
-      `UPSTASH_REDIS_REST_URL/TOKEN` or `KV_REST_API_URL/TOKEN`), confirm
-      `OPENROUTER_API_KEY` env var, then push master and redeploy.
-- [ ] Smoke-test deployed `/api/health` (should report `adapter: "redis"`).
+- [x] Upstash Redis provisioned via `vercel install upstash/upstash-kv`
+      (resource `upstash-kv-green-cave`; injects `KV_REST_API_URL/TOKEN`).
+      `OPENROUTER_API_KEY` was already set on the project.
+- [x] Deployed 2026-08-01: https://llm-council-gilt.vercel.app —
+      `/api/health` reports `adapter: "redis"`; conversation create → refetch →
+      list round-trip verified on the live deploy.
+- [x] Stale branch `vercel/react-server-components-cve-vu-lpg9lr` deleted.
+
+Note: the Vercel team was renamed "tj60647's projects" → "A Rough Idea"
+(slug `aroughidea`) at some point after Feb 2026; old deployment URLs under the
+old slug now dead-end at an SSO wall. Same account, same project throughout.
+Local dev pins `STORAGE_ADAPTER=memory` in `.env.local` so it does not write
+into the production Redis store; delete that line to share state with prod.
 
 ## Phase B: Robustness (next up)
 
