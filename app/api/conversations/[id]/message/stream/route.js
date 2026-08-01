@@ -19,6 +19,18 @@ const SSE_HEADERS = {
     'Connection': 'keep-alive'
 };
 
+// Roll per-call usage into a per-run total for the message footer.
+function costTotals(entries) {
+    let cost = 0, tokens = 0, calls = 0, priced = 0;
+    for (const e of entries) {
+        if (!e?.usage) continue;
+        calls++;
+        if (typeof e.usage.cost === 'number') { cost += e.usage.cost; priced++; }
+        if (typeof e.usage.total_tokens === 'number') tokens += e.usage.total_tokens;
+    }
+    return { cost: priced ? Number(cost.toFixed(6)) : null, total_tokens: tokens || null, calls };
+}
+
 export async function POST(req, props) {
     const gate = await requireUser(req);
     if (!gate.ok) return gate.response;
@@ -50,37 +62,54 @@ export async function POST(req, props) {
 
     const stream = new ReadableStream({
         async start(controller) {
+            // The stream can be cancelled by the client mid-run; enqueueing on a
+            // closed controller throws and would mask the real error.
+            let closed = false;
+            const send = (obj) => { if (!closed) { try { controller.enqueue(sse(obj)); } catch { closed = true; } } };
             try {
-                controller.enqueue(sse({ type: 'stage1_start' }));
-                const stage1 = await stage1CollectResponses(content, c.models);
-                controller.enqueue(sse({ type: 'stage1_complete', data: stage1 }));
+                const chairman = (Array.isArray(c.models) && c.models.length) ? c.models[0] : DEFAULT_CHAIRMAN_MODEL;
+                send({ type: 'council_start', data: { models: c.models, chairman } });
+
+                send({ type: 'stage1_start' });
+                const stage1 = await stage1CollectResponses(content, c.models, {
+                    onModel: (entry) => send({ type: 'stage1_model', data: entry })
+                });
+                send({ type: 'stage1_complete', data: stage1 });
                 console.log('[streamRoute] stage1 responses count:', Array.isArray(stage1) ? stage1.length : 'n/a');
 
-                controller.enqueue(sse({ type: 'stage2_start' }));
-                const { stage2Results, labelToModel } = await stage2CollectRankings(content, stage1, c.models);
+                send({ type: 'stage2_start' });
+                const { stage2Results, labelToModel } = await stage2CollectRankings(content, stage1, c.models, {
+                    onModel: (entry) => send({ type: 'stage2_model', data: entry })
+                });
                 const aggregate = aggregateRankings(stage2Results, labelToModel);
-                controller.enqueue(sse({ type: 'stage2_complete', data: stage2Results, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } }));
+                send({ type: 'stage2_complete', data: stage2Results, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
                 console.log('[streamRoute] stage2 rankings count:', Array.isArray(stage2Results) ? stage2Results.length : 'n/a');
 
-                controller.enqueue(sse({ type: 'stage3_start' }));
-                const chairman = (Array.isArray(c.models) && c.models.length) ? c.models[0] : DEFAULT_CHAIRMAN_MODEL;
+                send({ type: 'stage3_start', data: { model: chairman } });
                 console.log('[streamRoute] using chairman model:', chairman);
-                const stage3 = await stage3SynthesizeFinal(content, stage1, stage2Results, chairman);
-                controller.enqueue(sse({ type: 'stage3_complete', data: stage3 }));
-                console.log('[streamRoute] stage3 final synthesis length:', typeof stage3 === 'string' ? stage3.length : 'n/a');
+                const stage3 = await stage3SynthesizeFinal(content, stage1, stage2Results, chairman, {
+                    onDelta: (text) => send({ type: 'stage3_delta', data: text })
+                });
+                send({ type: 'stage3_complete', data: stage3 });
+                console.log('[streamRoute] stage3 final synthesis length:', stage3?.response?.length ?? 'n/a');
 
                 if (titlePromise) {
                     const title = await titlePromise;
                     await updateTitle(c.id, title);
-                    controller.enqueue(sse({ type: 'title_complete', data: { title } }));
+                    send({ type: 'title_complete', data: { title } });
                 }
 
-                await addAssistantMessage(c.id, { stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
-                controller.enqueue(sse({ type: 'complete' }));
-                controller.close();
+                const totals = costTotals([...stage1, ...stage2Results, stage3]);
+                await addAssistantMessage(c.id, {
+                    stage1, stage2: stage2Results, stage3,
+                    metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate, totals }
+                });
+                send({ type: 'complete', metadata: { totals } });
+                if (!closed) controller.close();
             } catch (e) {
-                controller.enqueue(sse({ type: 'error', message: e.message }));
-                controller.close();
+                console.error('[streamRoute] run failed:', e.message);
+                send({ type: 'error', message: e.message });
+                if (!closed) controller.close();
             }
         }
     });

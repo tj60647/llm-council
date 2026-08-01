@@ -1,8 +1,8 @@
 "use client";
 import { useState, useEffect } from 'react';
 import SankeyCouncil from '../components/SankeyCouncil';
-import FlowDiagram from '../components/FlowDiagram';
-import ModelSelector from '../components/ModelSelector';
+import CouncilFlow from '../components/CouncilFlow';
+import CouncilMessage from '../components/CouncilMessage';
 import ModelRing from '../components/ModelRing';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 
@@ -153,42 +153,87 @@ export default function HomePage() {
     }
     const reader = res.body.getReader();
     const decoder = new TextDecoder();
-    let assistant = { role:'assistant', stage1:null, stage2:null, stage3:null, metadata:null, loading:{stage1:false,stage2:false,stage3:false} };
+    const assistant = {
+      role:'assistant', stage1:[], stage2:[], stage3:null, streamingText:'',
+      chairman:null, metadata:null, loading:{stage1:false,stage2:false,stage3:false}
+    };
     setCurrentConversation(prev => ({...prev, messages:[...prev.messages, {role:'user', content}, assistant]}));
+
+    // Update the in-flight assistant message immutably so React re-renders.
+    const patchLast = (fn) => setCurrentConversation(prev => {
+      const messages = [...prev.messages];
+      const i = messages.length - 1;
+      messages[i] = fn({ ...messages[i] });
+      return { ...prev, messages };
+    });
+
+    const handle = (evt) => {
+      switch(evt.type){
+        case 'council_start':
+          patchLast(m => ({ ...m, chairman: evt.data?.chairman || null }));
+          break;
+        case 'stage1_start':
+          patchLast(m => ({ ...m, loading:{...m.loading, stage1:true} }));
+          break;
+        case 'stage1_model':
+          // Seats stream in as they finish rather than all at once
+          patchLast(m => ({ ...m, stage1: [...(m.stage1 || []), evt.data] }));
+          break;
+        case 'stage1_complete':
+          patchLast(m => ({ ...m, stage1: evt.data, loading:{...m.loading, stage1:false} }));
+          break;
+        case 'stage2_start':
+          patchLast(m => ({ ...m, loading:{...m.loading, stage2:true} }));
+          break;
+        case 'stage2_model':
+          patchLast(m => ({ ...m, stage2: [...(m.stage2 || []), evt.data] }));
+          break;
+        case 'stage2_complete':
+          patchLast(m => ({ ...m, stage2: evt.data, metadata: evt.metadata, loading:{...m.loading, stage2:false} }));
+          break;
+        case 'stage3_start':
+          patchLast(m => ({ ...m, chairman: evt.data?.model || m.chairman, loading:{...m.loading, stage3:true} }));
+          break;
+        case 'stage3_delta':
+          patchLast(m => ({ ...m, streamingText: (m.streamingText || '') + evt.data }));
+          break;
+        case 'stage3_complete':
+          patchLast(m => ({ ...m, stage3: evt.data, streamingText:'', loading:{...m.loading, stage3:false} }));
+          break;
+        case 'title_complete': {
+          const t = evt.data?.title;
+          if(t){
+            setCurrentConversation(prev => ({...prev, title: t}));
+            setConversations(prev => prev.map(cv => cv.id === id ? {...cv, title: t} : cv));
+          }
+          break;
+        }
+        case 'complete':
+          patchLast(m => ({ ...m, metadata: { ...(m.metadata || {}), ...(evt.metadata || {}) } }));
+          setConversations(prev => prev.map(cv => cv.id === id ? {...cv, message_count: (cv.message_count || 0) + 2} : cv));
+          break;
+        case 'error':
+          patchLast(m => ({ ...m, error: evt.message || evt.error }));
+          break;
+      }
+    };
+
+    // SSE frames are separated by a blank line and can split across chunks —
+    // buffer until a frame is whole, otherwise token deltas arrive corrupted.
+    let buffer = '';
     while(true){
       const {done, value} = await reader.read();
       if(done) break;
-      const chunk = decoder.decode(value);
-      chunk.split('\n').forEach(line => {
-        if(line.startsWith('data: ')){
-          try {
-            const evt = JSON.parse(line.slice(6));
-            if(evt.type === 'title_complete'){
-              const t = evt.data?.title;
-              if(t){
-                setCurrentConversation(prev => ({...prev, title: t}));
-                setConversations(prev => prev.map(cv => cv.id === id ? {...cv, title: t} : cv));
-              }
-              return;
-            }
-            setCurrentConversation(prev => {
-              const messages = [...prev.messages];
-              const last = messages[messages.length-1];
-              switch(evt.type){
-                case 'stage1_start': last.loading.stage1 = true; break;
-                case 'stage1_complete': last.stage1 = evt.data; last.loading.stage1 = false; break;
-                case 'stage2_start': last.loading.stage2 = true; break;
-                case 'stage2_complete': last.stage2 = evt.data; last.metadata = evt.metadata; last.loading.stage2 = false; break;
-                case 'stage3_start': last.loading.stage3 = true; break;
-                case 'stage3_complete': last.stage3 = evt.data; last.loading.stage3 = false; break;
-                case 'complete': break;
-                case 'error': last.error = evt.message; break;
-              }
-              return {...prev, messages};
-            });
-          } catch(e){ console.error('SSE parse', e); }
+      buffer += decoder.decode(value, { stream:true });
+      const frames = buffer.split('\n\n');
+      buffer = frames.pop() || '';
+      for(const frame of frames){
+        for(const line of frame.split('\n')){
+          if(!line.startsWith('data: ')) continue;
+          try { handle(JSON.parse(line.slice(6))); }
+          catch(e){ console.error('SSE parse', e, line.slice(0, 120)); }
         }
-      });
+      }
     }
     setLoading(false);
     if (me?.auth_enabled) fetchMe(); // refresh runs-left counter
@@ -369,13 +414,7 @@ export default function HomePage() {
                 </div>
               )}
               {currentConversation.messages.map((m,i)=>(
-                <div key={i} style={{marginBottom:16, background:'#fff', border:'1px solid #e5e5e5', borderRadius:6, padding:12}}>
-                  <div style={{fontWeight:'600', marginBottom:4}}>{m.role}</div>
-                  {m.content && <div style={{marginBottom:6}}>{m.content}</div>}
-                  {m.stage1 && <details style={{marginBottom:4}}><summary>Stage 1 Responses</summary><pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(m.stage1,null,2)}</pre></details>}
-                  {m.stage2 && <details style={{marginBottom:4}}><summary>Stage 2 Peer Eval</summary><pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(m.stage2,null,2)}</pre></details>}
-                  {m.stage3 && <details style={{marginBottom:4}}><summary>Stage 3 Synthesis</summary><pre style={{whiteSpace:'pre-wrap'}}>{JSON.stringify(m.stage3,null,2)}</pre></details>}
-                </div>
+                <CouncilMessage key={i} message={m} seats={currentConversation.models || []} />
               ))}
             </div>
             <div style={{padding:16, borderTop:'1px solid #ddd', background:'#fff'}}>
@@ -405,7 +444,7 @@ export default function HomePage() {
       <div style={{ width:PANEL_FLOW, flexShrink:0, borderLeft:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
         <h3 style={{margin:'0 0 2px', display:'flex', alignItems:'center', gap:7}}><Step n={4}/> Council flow</h3>
         <div style={{fontSize:11, opacity:0.6, marginBottom:10}}>prompt → responses → rankings → synthesis</div>
-        <FlowDiagram conversation={currentConversation} />
+        <CouncilFlow conversation={currentConversation} />
         <SankeyCouncil conversation={currentConversation} />
       </div>
       </div>{/* end flex main row */}

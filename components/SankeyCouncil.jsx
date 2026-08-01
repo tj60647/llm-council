@@ -1,149 +1,120 @@
 "use client";
 import { useMemo } from 'react';
 import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
+import { seatStyle, shortModelName } from '../lib/ui/seats.js';
+
+// Structural view: who reads whom. Seats are labeled by number (matching the
+// seat pills) because model names cannot fit in a 400px panel.
+// Deliberately NOT quantitative — link widths are uniform per stage rather than
+// pretending to encode volume; the ranking chart carries the numbers.
+
+const W = 360;
+const PENDING = '#d5d9dd';
+const DONE = '#2a78d6';
+const INK = '#0b0b0b';
+const INK_2 = '#52514e';
 
 export default function SankeyCouncil({ conversation }) {
   const diagram = useMemo(() => {
-    if(!conversation) return null;
-    const models = Array.isArray(conversation.models) ? conversation.models : [];
-    // Determine latest assistant message for stages
-    const assistantMsgs = conversation.messages.filter(m => m.role==='assistant');
-    const last = assistantMsgs[assistantMsgs.length-1] || {};
-    const stage1 = last.stage1 || [];
-    const stage2 = last.stage2 || [];
-    const aggregateData = last.metadata?.aggregate_rankings || [];
-    const stage3 = last.stage3;
+    if (!conversation) return null;
+    const seats = Array.isArray(conversation.models) ? conversation.models : [];
+    if (!seats.length) return null;
 
-    // Status flags
-    const stage1Done = stage1 && stage1.length > 0;
-    const stage2Done = stage2 && stage2.length > 0 && aggregateData && aggregateData.length > 0;
-    const stage3Done = !!stage3;
+    const assistant = [...conversation.messages].reverse().find(m => m.role === 'assistant') || null;
+    const stage1 = assistant?.stage1 || [];
+    const stage2 = assistant?.stage2 || [];
+    const aggregate = assistant?.metadata?.aggregate_rankings || [];
+    const stage3 = assistant?.stage3;
+    const stage1Done = stage1.length > 0;
+    const stage2Done = stage2.length > 0 && aggregate.length > 0;
+    const stage3Done = Boolean(typeof stage3 === 'string' ? stage3 : stage3?.response);
 
-    // Build baseline nodes from seats even if stages not done yet
-    const responseNodes = (stage1Done ? stage1.map(r => r.model) : models).map(m => ({ name: `Resp:${m.replace(/^[^/]+\//,'')}`, model: m }));
-    // Evaluators assumed to be each seat model
-    const evaluatorNodes = (stage2Done ? stage2.map(e => e.model) : models).map(m => ({ name: `Eval:${m.replace(/^[^/]+\//,'')}`, model: m }));
-    const aggregateNode = { name: 'Aggregate' };
-    const chairmanName = 'Chairman';
-    const finalName = 'User (Answer)';
-    const nodes = [ { name: 'User' }, ...responseNodes, ...evaluatorNodes, aggregateNode, { name: chairmanName }, { name: finalName } ];
-
-    // Indices
+    const nodes = [
+      { name:'You', col:0 },
+      ...seats.map((m, i) => ({ name:String(i+1), col:1, seat:i, model:m })),
+      ...seats.map((m, i) => ({ name:String(i+1), col:2, seat:i, model:m })),
+      { name:'Merge', col:3 },
+      { name:'Chair', col:4 },
+      { name:'Answer', col:5 }
+    ];
     const userIdx = 0;
-    const firstResponseIdx = 1;
-    const firstEvalIdx = 1 + responseNodes.length;
-    const aggregateIdx = nodes.length - 3;
-    const chairmanIdx = nodes.length - 2;
+    const respStart = 1;
+    const evalStart = 1 + seats.length;
+    const mergeIdx = nodes.length - 3;
+    const chairIdx = nodes.length - 2;
     const finalIdx = nodes.length - 1;
 
-    // Aggregate ranking map for tinting
-    const rankMap = new Map();
-    aggregateData.forEach(r => { if(r.model && typeof r.average_rank === 'number') rankMap.set(r.model, r.average_rank); });
-    const maxRank = Math.max(...Array.from(rankMap.values()), 1);
-    const minRank = Math.min(...Array.from(rankMap.values()), 1);
-    const norm = (rank) => {
-      if(maxRank === minRank) return 0.5; // neutral
-      return (rank - minRank) / (maxRank - minRank);
-    };
-    const lerpColor = (t) => { // t in [0,1] from low(good) green to high(bad) orange
-      const g = {r:46,g:204,b:113}; // #2ecc71
-      const o = {r:255,g:159,b:67}; // #ff9f43
-      const r = Math.round(g.r + (o.r - g.r)*t);
-      const gg = Math.round(g.g + (o.g - g.g)*t);
-      const b = Math.round(g.b + (o.b - g.b)*t);
-      return `rgb(${r},${gg},${b})`;
-    };
-
-    // Links skeleton always present
     const links = [];
-    // User -> Response seats
-    responseNodes.forEach((rn,i) => {
-      links.push({ source: userIdx, target: firstResponseIdx + i, value: 2, kind:'user_to_response', model: rn.model });
-    });
-    // Response -> Evaluator (peer review)
-    responseNodes.forEach((rn,ri) => {
-      evaluatorNodes.forEach((en,ei) => {
-        const respNode = firstResponseIdx + ri;
-        const evalNode = firstEvalIdx + ei;
-        const isSelf = rn.model === en.model;
-        links.push({ source: respNode, target: evalNode, value: isSelf ? 0.6 : 1, kind:'response_to_evaluator', model: rn.model });
-      });
-    });
-    // Evaluator -> Aggregate
-    evaluatorNodes.forEach((en,ei) => {
-      const evalNode = firstEvalIdx + ei;
-      links.push({ source: evalNode, target: aggregateIdx, value: 0.8, kind:'evaluator_to_aggregate' });
-    });
-    // Aggregate -> Chairman
-    links.push({ source: aggregateIdx, target: chairmanIdx, value: 1.2, kind:'aggregate_to_chairman' });
-    // Chairman consumes responses (light links post aggregation)
-    responseNodes.forEach((rn,i) => {
-      links.push({ source: firstResponseIdx + i, target: chairmanIdx, value: 0.4, kind:'response_to_chairman', model: rn.model });
-    });
-    // Chairman -> Final Answer
-    links.push({ source: chairmanIdx, target: finalIdx, value: 1.4, kind:'chairman_to_final' });
+    seats.forEach((_, i) => links.push({ source:userIdx, target:respStart+i, value:1, kind:'ask' }));
+    seats.forEach((_, ri) => seats.forEach((_, ei) =>
+      links.push({ source:respStart+ri, target:evalStart+ei, value:1/seats.length, kind:'review' })));
+    seats.forEach((_, i) => links.push({ source:evalStart+i, target:mergeIdx, value:1, kind:'merge' }));
+    links.push({ source:mergeIdx, target:chairIdx, value:seats.length, kind:'chair' });
+    links.push({ source:chairIdx, target:finalIdx, value:seats.length, kind:'answer' });
 
-    // Compute final synthesis text
-    let finalText = '';
-    if (typeof stage3 === 'string') finalText = stage3;
-    else if (stage3 && typeof stage3 === 'object') { try { finalText = JSON.stringify(stage3,null,2); } catch { finalText = String(stage3); } }
+    const height = Math.max(210, seats.length * 30 + 54);
+    const gen = sankey().nodeWidth(11).nodePadding(9).extent([[2, 20], [W - 52, height - 8]]);
+    const graph = gen({ nodes: nodes.map((d, i) => ({ ...d, index:i })), links });
 
-    const sankeyGen = sankey().nodeWidth(18).nodePadding(14).extent([[0,0],[380,300]]);
-    const graph = sankeyGen({ nodes: nodes.map((d,i)=>({...d, index:i})), links });
-    return { graph, finalText, stage1Done, stage2Done, stage3Done, rankMap, norm, lerpColor };
+    // Column captions sit above the first node of each column
+    const captions = [];
+    for (const col of [0, 1, 2, 3, 4, 5]) {
+      const first = graph.nodes.find(n => n.col === col);
+      if (first) captions.push({ x: first.x0, label: ['Ask','Answer','Review','Merge','Chair','Final'][col] });
+    }
+    return { graph, height, captions, stage1Done, stage2Done, stage3Done, seats };
   }, [conversation]);
 
-  if(!diagram) return <div style={{fontSize:12, color:'#666'}}>Sankey: waiting for data</div>;
+  if (!diagram) return null;
+  const { graph, height, captions, stage1Done, stage2Done, stage3Done, seats } = diagram;
 
-  const { graph, finalText, stage1Done, stage2Done, stage3Done, rankMap, norm, lerpColor } = diagram;
   const linkColor = (l) => {
-    // Base pending color
-    const pending = '#bfbfbf';
-    const completeBase = '#4a90e2';
-    switch(l.kind){
-      case 'user_to_response': return stage1Done ? completeBase : pending;
-      case 'response_to_evaluator': {
-        if(!stage2Done) return pending;
-        const avg = rankMap.get(l.model);
-        if(typeof avg === 'number') return lerpColor(norm(avg));
-        return completeBase;
-      }
-      case 'evaluator_to_aggregate': return stage2Done ? completeBase : pending;
-      case 'aggregate_to_chairman': return stage2Done ? completeBase : pending;
-      case 'response_to_chairman': return stage2Done ? '#6fa8dc' : pending;
-      case 'chairman_to_final': return stage3Done ? completeBase : pending;
-      default: return pending;
+    switch (l.kind) {
+      case 'ask': return stage1Done ? DONE : PENDING;
+      case 'review': return stage2Done ? DONE : PENDING;
+      case 'merge': return stage2Done ? DONE : PENDING;
+      case 'chair': return stage2Done ? DONE : PENDING;
+      case 'answer': return stage3Done ? DONE : PENDING;
+      default: return PENDING;
     }
   };
-  return (
-    <div>
-      <svg width={400} height={320} style={{ background:'#fafafa', border:'1px solid #eee', borderRadius:6 }}>
-        {graph.links.map((l,i)=>(
-          <path key={i} d={sankeyLinkHorizontal()(l)} fill="none" stroke={linkColor(l)} strokeWidth={Math.max(1,l.width)} opacity={0.6} />
-        ))}
-        {graph.nodes.map((n,i)=>(
-          <g key={i} transform={`translate(${n.x0},${n.y0})`}>
-            <rect width={n.x1-n.x0} height={n.y1-n.y0} fill={nodeColor(n.name)} rx={4} />
-            <text x={(n.x1-n.x0)/2} y={(n.y1-n.y0)/2} fill="#111" fontSize={10} textAnchor="middle" dominantBaseline="middle">{n.name}</text>
-          </g>
-        ))}
-      </svg>
-      {finalText && finalText.length > 0 && (
-        <div style={{marginTop:8, padding:8, background:'#f4f9ff', border:'1px solid #dbe7f5', borderRadius:4}}>
-          <strong>Final Synthesis:</strong>
-          <div style={{whiteSpace:'pre-wrap', fontSize:12, marginTop:4}}>{finalText.slice(0,800)}{finalText.length>800?'…':''}</div>
-        </div>
-      )}
-    </div>
-  );
-}
 
-function nodeColor(name){
-  if(name === 'User') return '#e0e0e0';
-  if(name.startsWith('Resp:')) return '#d1f0ff';
-  if(name.startsWith('Eval:')) return '#ffe6c7';
-  if(name === 'Aggregate') return '#ebe1ff';
-  if(name === 'Chairman') return '#c8f7d0';
-  if(name === 'User (Answer)') return '#faf3b5';
-  return '#ddd';
+  return (
+    <figure style={{margin:0}}>
+      <figcaption style={{fontSize:12, fontWeight:600, color:INK, marginBottom:2}}>Who reads whom</figcaption>
+      <p style={{fontSize:11, color:INK_2, margin:'0 0 6px'}}>
+        Numbers are seats. Every seat's answer is read by every seat during review; the chairman then writes the final answer.
+      </p>
+      <svg viewBox={`0 0 ${W} ${height}`} width="100%" style={{ display:'block', background:'#fcfcfb', border:'1px solid #e1e0d9', borderRadius:6 }} role="img"
+        aria-label={`Council flow across ${seats.length} seats`}>
+        {captions.map((c, i) => (
+          <text key={i} x={c.x} y={12} fontSize={8.5} fill={INK_2}>{c.label}</text>
+        ))}
+        {graph.links.map((l, i) => (
+          <path key={i} d={sankeyLinkHorizontal()(l)} fill="none" stroke={linkColor(l)}
+            strokeWidth={Math.max(0.8, l.width)} opacity={l.kind === 'review' ? 0.35 : 0.55} />
+        ))}
+        {graph.nodes.map((n, i) => {
+          const s = typeof n.seat === 'number' ? seatStyle(n.seat) : null;
+          const isSeat = Boolean(s);
+          return (
+            <g key={i}>
+              <rect x={n.x0} y={n.y0} width={n.x1 - n.x0} height={Math.max(3, n.y1 - n.y0)} rx={3}
+                fill={isSeat ? s.fill : '#1e242c'} stroke={isSeat ? s.border : 'none'} />
+              <title>{isSeat ? `Seat ${n.seat + 1}: ${shortModelName(n.model)}` : n.name}</title>
+              <text x={n.x1 + 3} y={(n.y0 + n.y1) / 2} fontSize={8.5} fill={INK_2} dominantBaseline="middle">{n.name}</text>
+            </g>
+          );
+        })}
+      </svg>
+      <div style={{display:'flex', gap:14, marginTop:6, fontSize:10.5, color:INK_2}}>
+        <span style={{display:'flex', alignItems:'center', gap:5}}>
+          <span style={{width:14, height:3, background:DONE, borderRadius:2}}/> done
+        </span>
+        <span style={{display:'flex', alignItems:'center', gap:5}}>
+          <span style={{width:14, height:3, background:PENDING, borderRadius:2}}/> pending
+        </span>
+      </div>
+    </figure>
+  );
 }
