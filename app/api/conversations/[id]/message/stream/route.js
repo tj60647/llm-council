@@ -7,39 +7,36 @@ import { getConversation, addUserMessage, addAssistantMessage, updateTitle, adap
 import { DEFAULT_CHAIRMAN_MODEL } from '../../../../../../lib/config/models.js';
 
 export const runtime = 'nodejs';
+export const maxDuration = 300; // council runs are multi-minute; default serverless limits kill them
 
-function sse(obj) { return `data: ${JSON.stringify(obj)}\n\n`; }
+const encoder = new TextEncoder();
+function sse(obj) { return encoder.encode(`data: ${JSON.stringify(obj)}\n\n`); }
 
-// Next.js dynamic route context may be async; await context before using params
+const SSE_HEADERS = {
+    'Content-Type': 'text/event-stream',
+    'Cache-Control': 'no-cache, no-transform',
+    'Connection': 'keep-alive'
+};
+
 export async function POST(req, props) {
     const params = await props.params;
     const { content } = await req.json();
     const conversationId = params?.id;
-    const c = conversationId ? getConversation(conversationId) : null;
+    const c = conversationId ? await getConversation(conversationId) : null;
     if (!c) {
         console.warn('[streamRoute] conversation not found for id:', conversationId);
-        const encoder = new TextEncoder();
         const stream = new ReadableStream({
             start(controller) {
-                controller.enqueue(encoder.encode(`event: error\n`));
-                controller.enqueue(encoder.encode(`data: ${JSON.stringify({ error: 'conversation_not_found', id: conversationId })}\n\n`));
+                controller.enqueue(sse({ type: 'error', error: 'conversation_not_found', id: conversationId }));
                 controller.close();
             }
         });
-        return new Response(stream, {
-            headers: {
-                'Content-Type': 'text/event-stream',
-                'Cache-Control': 'no-cache',
-                'Connection': 'keep-alive'
-            },
-            status: 404
-        });
-    } else {
-        console.log('[streamRoute] starting stream (adapter:', adapterName(), ') conversation id:', c.id, 'messages:', c.messages.length);
+        return new Response(stream, { headers: SSE_HEADERS, status: 404 });
     }
-    // Proceed with streaming stages
+    console.log('[streamRoute] starting stream (adapter:', adapterName(), ') conversation id:', c.id, 'messages:', c.messages.length);
+
     const isFirst = c.messages.length === 0;
-    addUserMessage(c.id, content);
+    await addUserMessage(c.id, content);
     let titlePromise = null;
     if (isFirst) { titlePromise = generateTitle(content); }
 
@@ -66,11 +63,11 @@ export async function POST(req, props) {
 
                 if (titlePromise) {
                     const title = await titlePromise;
-                    updateTitle(c.id, title);
+                    await updateTitle(c.id, title);
                     controller.enqueue(sse({ type: 'title_complete', data: { title } }));
                 }
 
-                addAssistantMessage(c.id, { stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
+                await addAssistantMessage(c.id, { stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
                 controller.enqueue(sse({ type: 'complete' }));
                 controller.close();
             } catch (e) {
@@ -79,5 +76,5 @@ export async function POST(req, props) {
             }
         }
     });
-    return new Response(stream, { headers: { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', 'Connection': 'keep-alive' } });
+    return new Response(stream, { headers: SSE_HEADERS });
 }

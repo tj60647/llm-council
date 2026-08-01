@@ -94,6 +94,14 @@ export default function HomePage() {
         if(line.startsWith('data: ')){
           try {
             const evt = JSON.parse(line.slice(6));
+            if(evt.type === 'title_complete'){
+              const t = evt.data?.title;
+              if(t){
+                setCurrentConversation(prev => ({...prev, title: t}));
+                setConversations(prev => prev.map(cv => cv.id === id ? {...cv, title: t} : cv));
+              }
+              return;
+            }
             setCurrentConversation(prev => {
               const messages = [...prev.messages];
               const last = messages[messages.length-1];
@@ -142,7 +150,7 @@ export default function HomePage() {
             <li key={c.id} style={{marginBottom:8}}>
               <button style={{width:'100%', textAlign:'left', fontSize:13}} onClick={async () => {
                 const r = await fetch(`/api/conversations/${c.id}`);
-                if(r.ok){ const full = await r.json(); setCurrentConversation(full); setTempModels(full.models || []); setEditingModels(false); }
+                if(r.ok){ const data = await r.json(); const conv = data.conversation; setCurrentConversation(conv); setTempModels(conv?.models || []); setEditingModels(false); }
               }}>{c.title || 'Untitled'} <span style={{opacity:0.6}}>({c.message_count})</span></button>
             </li>
           ))}

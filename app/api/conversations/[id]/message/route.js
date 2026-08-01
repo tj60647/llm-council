@@ -7,21 +7,22 @@ import { stage3SynthesizeFinal } from '../../../../../lib/council/stage3Synthesi
 import { generateTitle } from '../../../../../lib/council/generateTitle.js';
 
 export const runtime = 'nodejs';
+export const maxDuration = 300; // council runs are multi-minute; default serverless limits kill them
 
 export async function POST(req, props) {
     const params = await props.params;
     const { content } = await req.json();
-    const c = getConversation(params.id);
+    const c = await getConversation(params.id);
     if (!c) return NextResponse.json({ error: 'Not found' }, { status: 404 });
     const isFirst = c.messages.length === 0;
-    addUserMessage(c.id, content);
-    if (isFirst) { updateTitle(c.id, await generateTitle(content)); }
+    await addUserMessage(c.id, content);
+    if (isFirst) { await updateTitle(c.id, await generateTitle(content)); }
     try {
         const stage1 = await stage1CollectResponses(content, c.models);
         const { stage2Results, labelToModel } = await stage2CollectRankings(content, stage1, c.models);
         const aggregate = aggregateRankings(stage2Results, labelToModel);
         const stage3 = await stage3SynthesizeFinal(content, stage1, stage2Results, c.models[0]);
-        addAssistantMessage(c.id, { stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
+        await addAssistantMessage(c.id, { stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
         return NextResponse.json({ adapter: adapterName(), stage1, stage2: stage2Results, stage3, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
     } catch (e) {
         return NextResponse.json({ adapter: adapterName(), error: e.message }, { status: 500 });

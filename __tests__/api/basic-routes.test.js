@@ -3,6 +3,7 @@ import { GET as getHealth } from '../../app/api/health/route.js';
 import { GET as getModels, resetCache } from '../../app/api/models/route.js';
 import { GET as getConversations, POST as createConversation } from '../../app/api/conversations/route.js';
 import { GET as getConversation } from '../../app/api/conversations/[id]/route.js';
+import { GET as getConversationModels, POST as updateConversationModels } from '../../app/api/conversations/[id]/models/route.js';
 import { resetMemory } from '../../lib/storage/memory.js';
 
 // Mock dependencies
@@ -17,8 +18,12 @@ vi.mock('../../lib/storage/index.js', async () => {
 // Mock environment
 process.env.OPENROUTER_API_KEY = 'test-key';
 
+// Next.js 16 passes params as a Promise; tests must mirror that so sync-access
+// bugs surface here instead of in production.
+const routeProps = (params) => ({ params: Promise.resolve(params) });
+
 describe('API Routes', () => {
-    
+
     beforeEach(() => {
         resetMemory();
         vi.unstubAllGlobals();
@@ -28,7 +33,7 @@ describe('API Routes', () => {
         it('should return ok status', async () => {
             const response = await getHealth();
             const data = await response.json();
-            
+
             expect(response.status).toBe(200);
             expect(data.status).toBe('ok');
             expect(data.ts).toBeDefined();
@@ -64,10 +69,10 @@ describe('API Routes', () => {
 
         it('should handle fetch errors gracefully', async () => {
             global.fetch = vi.fn().mockRejectedValue(new Error('API Down'));
-            
+
             const response = await getModels();
             const data = await response.json();
-            
+
             expect(response.status).toBe(500);
             expect(data.error).toBe('API Down');
         });
@@ -77,7 +82,7 @@ describe('API Routes', () => {
         it('should list empty conversations initially', async () => {
             const response = await getConversations();
             const data = await response.json();
-            
+
             expect(data.conversations).toEqual([]);
             expect(data.count).toBe(0);
         });
@@ -86,10 +91,10 @@ describe('API Routes', () => {
             const req = {
                 json: async () => ({ models: ['model-a'] })
             };
-            
+
             const response = await createConversation(req);
             const data = await response.json();
-            
+
             expect(data.conversation).toBeDefined();
             expect(data.conversation.models).toEqual(['model-a']);
             expect(data.conversation.id).toBeDefined();
@@ -98,25 +103,59 @@ describe('API Routes', () => {
 
     describe('/api/conversations/[id]', () => {
         it('should return 404 for non-existent conversation', async () => {
-            const context = { params: { id: 'missing' } };
-            const response = await getConversation(null, context);
-            
+            const response = await getConversation(null, routeProps({ id: 'missing' }));
+
             expect(response.status).toBe(404);
         });
 
-        it('should retrieve an existing conversation', async () => {
+        it('should retrieve an existing conversation wrapped in { conversation }', async () => {
             // Create one first
             const createReq = { json: async () => ({ models: [] }) };
             const createRes = await createConversation(createReq);
             const { conversation } = await createRes.json();
-            
+
             // Fetch it
-            const context = { params: { id: conversation.id } };
-            const response = await getConversation(null, context);
+            const response = await getConversation(null, routeProps({ id: conversation.id }));
             const data = await response.json();
-            
+
             expect(response.status).toBe(200);
             expect(data.conversation.id).toBe(conversation.id);
+        });
+    });
+
+    describe('/api/conversations/[id]/models', () => {
+        it('should return 404 for non-existent conversation', async () => {
+            const response = await getConversationModels(null, routeProps({ id: 'missing' }));
+            expect(response.status).toBe(404);
+        });
+
+        it('should get and update seat models', async () => {
+            const createReq = { json: async () => ({ models: ['model-a'] }) };
+            const createRes = await createConversation(createReq);
+            const { conversation } = await createRes.json();
+
+            const getRes = await getConversationModels(null, routeProps({ id: conversation.id }));
+            expect((await getRes.json()).models).toEqual(['model-a']);
+
+            const postReq = { json: async () => ({ models: ['model-b', 'model-c'] }) };
+            const postRes = await updateConversationModels(postReq, routeProps({ id: conversation.id }));
+            const updated = await postRes.json();
+
+            expect(postRes.status).toBe(200);
+            expect(updated.models).toEqual(['model-b', 'model-c']);
+        });
+
+        it('should cap seats at 7 models', async () => {
+            const createReq = { json: async () => ({ models: ['model-a'] }) };
+            const createRes = await createConversation(createReq);
+            const { conversation } = await createRes.json();
+
+            const nine = Array.from({ length: 9 }, (_, i) => `model-${i}`);
+            const postReq = { json: async () => ({ models: nine }) };
+            const postRes = await updateConversationModels(postReq, routeProps({ id: conversation.id }));
+            const updated = await postRes.json();
+
+            expect(updated.models).toHaveLength(7);
         });
     });
 });
