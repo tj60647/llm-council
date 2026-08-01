@@ -67,7 +67,7 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
         return (
         <div key={i} style={{ position:'relative' }}>
           <div
-            title={`Seat ${i+1}${i === 0 ? ' — chairman' : ''}: ${m || 'empty'}`}
+            title={`Seat ${i+1}${i === 0 ? ' — chairperson' : ''}: ${m || 'empty'}`}
             style={{
               display:'flex', alignItems:'center', gap:6,
               padding:'4px 6px 4px 5px',

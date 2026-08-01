@@ -1,6 +1,6 @@
 export const metadata = {
   title: 'LLM Council — Reconvened',
-  description: "Andrej Karpathy's llm-council, reconvened: multi-model deliberation with peer review and a chairman's synthesis — now with persistence, sign-in, and workshop seating."
+  description: "Andrej Karpathy's llm-council, reconvened: multi-model deliberation with peer review and a chairperson's synthesis — now with persistence, sign-in, and workshop seating."
 };
 
 export default function RootLayout({ children }) {

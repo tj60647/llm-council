@@ -8,7 +8,7 @@ This document provides a concise, up-to-date overview of the LLM Council archite
 2. Stage 1: Parallel model responses.
 3. Stage 2: Peer evaluations with anonymized labels (Response A, B, ...).
 4. Aggregate rankings (average position across evaluations).
-5. Stage 3: Chairman synthesis referencing all prior context.
+5. Stage 3: Chairperson synthesis referencing all prior context.
 6. Streaming events (SSE) deliver incremental updates to client.
 
 ## Key Modules
@@ -50,7 +50,7 @@ Adapter selection (`lib/storage/index.js`): `STORAGE_ADAPTER` env wins (`memory`
 
 ## Seat Metaphor
 
-- Seats are ordered array of models (index 0 currently chairman by default).
+- Seats are ordered array of models (index 0 currently chairperson by default).
 - Conversations snapshot seat configuration at creation; can be edited later.
 - Cap of 7 models enforced for visualization clarity and prompt size management.
 

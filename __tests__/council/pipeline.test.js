@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { queryModel, streamModel, queryModelsParallel } from '../../lib/openrouter/queryModel.js';
 import { stage1CollectResponses } from '../../lib/council/stage1CollectResponses.js';
 import { stage2CollectRankings } from '../../lib/council/stage2CollectRankings.js';
-import { PROMPT_TEMPLATES, stage2RankingPrompt } from '../../lib/council/prompts.js';
+import { PROMPT_TEMPLATES, promptsForSeat, stage2RankingPrompt } from '../../lib/council/prompts.js';
 
 process.env.OPENROUTER_API_KEY = 'test-key';
 
@@ -163,10 +163,20 @@ describe('council stages', () => {
 });
 
 describe('prompt templates', () => {
-    it('expose one display entry per stage, marking the chairman-only stage', async () => {
+    it('use the same builders the runtime sends', () => {
         expect(PROMPT_TEMPLATES).toHaveLength(3);
-        expect(PROMPT_TEMPLATES[2].appliesTo).toMatch(/seat 1/i);
-        // display copies use the same builders the runtime sends
         expect(PROMPT_TEMPLATES[1].template).toBe(stage2RankingPrompt('{your question}', '{Response A…N, anonymized}'));
+    });
+
+    it('shows a seat only the stages it actually performs', () => {
+        // The chairperson chairs, so only seat 0 is shown the synthesis prompt.
+        expect(promptsForSeat(0).map(t => t.stage)).toEqual([
+            'Stage 1 — Answer', 'Stage 2 — Peer review', 'Stage 3 — Synthesis'
+        ]);
+        for (const seat of [1, 2, 6]) {
+            const stages = promptsForSeat(seat).map(t => t.stage);
+            expect(stages).toEqual(['Stage 1 — Answer', 'Stage 2 — Peer review']);
+            expect(stages.some(s => s.includes('Stage 3'))).toBe(false);
+        }
     });
 });

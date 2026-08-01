@@ -6,14 +6,14 @@
 > his council adjourned as a weekend vibe-code; this fork **reconvenes** it as a
 > Next.js app with persistent storage, streaming, GitHub sign-in, and workshop
 > seating (groups, join codes, model entitlements, run caps). The 3‑stage
-> deliberation design — independent answers, anonymized peer review, chairman
+> deliberation design — independent answers, anonymized peer review, chairperson
 > synthesis — is his idea, gratefully borrowed.
 
 LLM Council lets you pose a prompt to a set of model "seats". Each seat holds a model. The council executes a 3‑stage collaborative reasoning process via OpenRouter:
 
 1. **Stage 1: Individual Responses** – All models answer independently.
 2. **Stage 2: Peer Review & Ranking** – Each model (anonymized labels) ranks others on accuracy & insight.
-3. **Stage 3: Chairman Synthesis** – A designated chairman model produces a unified final answer referencing collective insights.
+3. **Stage 3: Chairperson Synthesis** – A designated chairperson model produces a unified final answer referencing collective insights.
 
 The UI shows conversations, seat configuration, message history, and a Sankey visualization of the multi‑stage flow (responses → rankings → aggregate → synthesis).
 

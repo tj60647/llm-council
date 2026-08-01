@@ -4,7 +4,7 @@ import { aggregateRankings } from '../../../../../../lib/council/aggregateRankin
 import { stage3SynthesizeFinal } from '../../../../../../lib/council/stage3SynthesizeFinal.js';
 import { generateTitle } from '../../../../../../lib/council/generateTitle.js';
 import { getConversation, addUserMessage, addAssistantMessage, updateTitle, adapterName } from '../../../../../../lib/storage/index.js';
-import { DEFAULT_CHAIRMAN_MODEL } from '../../../../../../lib/config/models.js';
+import { DEFAULT_CHAIRPERSON_MODEL } from '../../../../../../lib/config/models.js';
 import { requireUser, ownsConversation, consumeRun } from '../../../../../../lib/auth/guard.js';
 
 export const runtime = 'nodejs';
@@ -67,8 +67,8 @@ export async function POST(req, props) {
             let closed = false;
             const send = (obj) => { if (!closed) { try { controller.enqueue(sse(obj)); } catch { closed = true; } } };
             try {
-                const chairman = (Array.isArray(c.models) && c.models.length) ? c.models[0] : DEFAULT_CHAIRMAN_MODEL;
-                send({ type: 'council_start', data: { models: c.models, chairman } });
+                const chairperson = (Array.isArray(c.models) && c.models.length) ? c.models[0] : DEFAULT_CHAIRPERSON_MODEL;
+                send({ type: 'council_start', data: { models: c.models, chairperson } });
 
                 send({ type: 'stage1_start' });
                 const stage1 = await stage1CollectResponses(content, c.models, {
@@ -85,9 +85,9 @@ export async function POST(req, props) {
                 send({ type: 'stage2_complete', data: stage2Results, metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate } });
                 console.log('[streamRoute] stage2 rankings count:', Array.isArray(stage2Results) ? stage2Results.length : 'n/a');
 
-                send({ type: 'stage3_start', data: { model: chairman } });
-                console.log('[streamRoute] using chairman model:', chairman);
-                const stage3 = await stage3SynthesizeFinal(content, stage1, stage2Results, chairman, {
+                send({ type: 'stage3_start', data: { model: chairperson } });
+                console.log('[streamRoute] using chairperson model:', chairperson);
+                const stage3 = await stage3SynthesizeFinal(content, stage1, stage2Results, chairperson, {
                     onDelta: (text) => send({ type: 'stage3_delta', data: text })
                 });
                 send({ type: 'stage3_complete', data: stage3 });

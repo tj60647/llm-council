@@ -85,7 +85,7 @@ export default function SankeyCouncil({ conversation }) {
     <figure style={{margin:0}}>
       <figcaption style={{fontSize:12, fontWeight:600, color:INK, marginBottom:2}}>Who reads whom</figcaption>
       <p style={{fontSize:11, color:INK_2, margin:'0 0 6px'}}>
-        Numbers are seats. Every seat's answer is read by every seat during review; the chairman then writes the final answer.
+        Numbers are seats. Every seat's answer is read by every seat during review; the chairperson then writes the final answer.
       </p>
       <svg viewBox={`0 0 ${W} ${height}`} width="100%" style={{ display:'block', background:'#fcfcfb', border:'1px solid #e1e0d9', borderRadius:6 }} role="img"
         aria-label={`Council flow across ${seats.length} seats`}>

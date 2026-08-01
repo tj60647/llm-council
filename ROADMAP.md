@@ -32,7 +32,7 @@ Stacked causes — each alone was fatal:
    Redis adapter was a throwing stub. Fixed: real Upstash Redis adapter,
    auto-selected when Upstash/KV env vars exist.
 3. **Retired default models**: 2 of 3 default seats no longer exist on
-   OpenRouter (`google/gemini-3-pro-preview` — the chairman — gone;
+   OpenRouter (`google/gemini-3-pro-preview` — the chairperson — gone;
    `x-ai/grok-4` retired 2026-05-17). Councils returned mostly-null stages
    even where the plumbing worked. Fixed: defaults refreshed to IDs verified
    live on 2026-07-31.
@@ -54,7 +54,7 @@ Stacked causes — each alone was fatal:
 - [x] Fix remaining contract bug (conversation select).
 - [x] Fix Next 16 async `params` in `[id]/models` route (seat editing 404'd).
 - [x] Async storage facade + Upstash Redis adapter + tests.
-- [x] Refresh default council to live models (Gemini 3.1 Pro Preview chairman,
+- [x] Refresh default council to live models (Gemini 3.1 Pro Preview chairperson,
       GPT-5.5, Claude Sonnet 5, Grok 4.5).
 - [x] `maxDuration = 300`; SSE chunks properly byte-encoded.
 - [x] Title generation goes through the storage adapter (was memory-only
@@ -108,7 +108,7 @@ conversation isolation, and an `/admin` page (groups, members, usage, revoke).
 - Sankey legend + tooltips; per-link latency overlay (existing backlog).
 - Cost estimation per conversation (OpenRouter returns usage).
 - Conversation delete + export (JSON).
-- Chairman seat selection in UI (currently seat 0 by convention).
+- Chairperson seat selection in UI (currently seat 0 by convention).
 
 ## Phase D: Stretch
 

@@ -72,7 +72,7 @@ export default function CouncilMessage({ message, seats = [] }) {
   const synthesis = typeof m.stage3 === 'string' ? { response: m.stage3 } : (m.stage3 || null);
   const streaming = m.streamingText || '';
   const answerText = synthesis?.response || streaming;
-  const chairModel = synthesis?.model || m.chairman || seats[0];
+  const chairModel = synthesis?.model || m.chairperson || seats[0];
   const totals = m.metadata?.totals;
   const aggregate = m.metadata?.aggregate_rankings || [];
 
@@ -164,7 +164,7 @@ export default function CouncilMessage({ message, seats = [] }) {
 function PendingLine({ stage1, stage2, seats, loading, error }) {
   if (error) return <div style={{fontSize:13, color:'#d03b3b'}}>The run failed before a synthesis was produced.</div>;
   let text = 'Convening…';
-  if (loading.stage3) text = 'The chairman is writing the final answer…';
+  if (loading.stage3) text = 'The chairperson is writing the final answer…';
   else if (loading.stage2 || (stage1 >= seats && seats)) text = `Peer review — ${stage2}/${seats} seats have ranked…`;
   else if (loading.stage1) text = `Collecting answers — ${stage1}/${seats} seats in…`;
   // Keyframes must live in the same styled-jsx scope as the class that uses

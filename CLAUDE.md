@@ -8,7 +8,7 @@ LLM Council is a multi-model collaborative reasoning platform built with Next.js
 
 1. **Stage 1** – All models answer the user prompt independently, in parallel.
 2. **Stage 2** – Each model evaluates all responses (anonymized as "Response A", "Response B", etc.) and produces a ranked evaluation.
-3. **Stage 3** – A designated "chairman" model synthesizes a final answer from all stage 1 responses and stage 2 rankings.
+3. **Stage 3** – A designated "chairperson" model synthesizes a final answer from all stage 1 responses and stage 2 rankings.
 
 Results are streamed in real-time to the client via Server-Sent Events (SSE) and visualized as a Sankey flow diagram.
 
@@ -39,14 +39,14 @@ Results are streamed in real-time to the client via Server-Sent Events (SSE) and
 │   └── FlowDiagram.jsx         # Simple stage status diagram (pending/running/complete)
 ├── lib/
 │   ├── config/
-│   │   └── models.js           # Default model seats & chairman config
+│   │   └── models.js           # Default model seats & chairperson config
 │   ├── council/                # Pure orchestration functions (no framework dependencies)
 │   │   ├── stage1CollectResponses.js
 │   │   ├── stage2CollectRankings.js
 │   │   ├── stage3SynthesizeFinal.js
 │   │   ├── parseRanking.js     # Regex parser extracting ranked labels from model text
 │   │   ├── aggregateRankings.js # Average rank position across evaluators
-│   │   └── generateTitle.js    # Chairman generates 3-5 word conversation title (async, 30s timeout)
+│   │   └── generateTitle.js    # Chairperson generates 3-5 word conversation title (async, 30s timeout)
 │   ├── openrouter/
 │   │   └── queryModel.js       # API wrapper: queryModel() and queryModelsParallel()
 │   └── storage/
@@ -120,10 +120,10 @@ These are pure functions with no framework dependencies. They can be extracted a
 
 - **`stage1CollectResponses(userQuery, models)`** — Queries all models in parallel; returns `[{ model, response }]`.
 - **`stage2CollectRankings(stage1Results, models)`** — Sends anonymized responses to all models for peer evaluation; returns rankings + `label_to_model` mapping.
-- **`stage3SynthesizeFinal(userQuery, stage1Results, stage2Results, chairman)`** — Chairman synthesizes final answer from full context.
+- **`stage3SynthesizeFinal(userQuery, stage1Results, stage2Results, chairperson)`** — Chairperson synthesizes final answer from full context.
 - **`parseRankingFromText(text)`** — Extracts ordered labels (e.g. `["Response A", "Response C", "Response B"]`) from model output. Looks for a `FINAL RANKING:` section; falls back to scanning the full text.
 - **`aggregateRankings(stage2Results, label_to_model)`** — Averages rank positions across evaluators; returns `[{ model, avgRank }]` sorted best-first.
-- **`generateTitle(userQuery, chairman)`** — Async title generation with 30-second timeout; non-blocking.
+- **`generateTitle(userQuery, chairperson)`** — Async title generation with 30-second timeout; non-blocking.
 
 ### Anonymization Strategy
 
@@ -142,7 +142,7 @@ FINAL RANKING:
 ### Seat Metaphor
 
 - A "seat" is a slot in the model array for a conversation.
-- **Index 0 is the chairman** by default.
+- **Index 0 is the chairperson** by default.
 - Max 7 seats enforced (visualization clarity + prompt size management).
 - Conversations **snapshot** the seat configuration at creation time.
 - Seats can be edited per-conversation via `GET/POST /api/conversations/[id]/models`.
@@ -192,7 +192,7 @@ To implement a new adapter: create `lib/storage/<adapter>.js` exporting the same
   id: string,          // UUID
   created_at: string,  // ISO timestamp
   title: string,       // Generated async; starts as "Untitled"
-  models: string[],    // Ordered model IDs; index 0 = chairman
+  models: string[],    // Ordered model IDs; index 0 = chairperson
   messages: Message[]
 }
 ```
@@ -272,7 +272,7 @@ These are acknowledged in `ROADMAP.md`.
 3. Document the new env var value in `.env.local` example.
 
 ### Modifying default models
-Edit `lib/config/models.js`. The first entry in the array is the chairman.
+Edit `lib/config/models.js`. The first entry in the array is the chairperson.
 
 ### Changing the ranking prompt format
 Edit `lib/council/stage2CollectRankings.js` (the system/user prompt construction) and update `lib/council/parseRanking.js` if the expected output format changes.

@@ -155,7 +155,7 @@ export default function HomePage() {
     const decoder = new TextDecoder();
     const assistant = {
       role:'assistant', stage1:[], stage2:[], stage3:null, streamingText:'',
-      chairman:null, metadata:null, loading:{stage1:false,stage2:false,stage3:false}
+      chairperson:null, metadata:null, loading:{stage1:false,stage2:false,stage3:false}
     };
     setCurrentConversation(prev => ({...prev, messages:[...prev.messages, {role:'user', content}, assistant]}));
 
@@ -170,7 +170,7 @@ export default function HomePage() {
     const handle = (evt) => {
       switch(evt.type){
         case 'council_start':
-          patchLast(m => ({ ...m, chairman: evt.data?.chairman || null }));
+          patchLast(m => ({ ...m, chairperson: evt.data?.chairperson || null }));
           break;
         case 'stage1_start':
           patchLast(m => ({ ...m, loading:{...m.loading, stage1:true} }));
@@ -192,7 +192,7 @@ export default function HomePage() {
           patchLast(m => ({ ...m, stage2: evt.data, metadata: evt.metadata, loading:{...m.loading, stage2:false} }));
           break;
         case 'stage3_start':
-          patchLast(m => ({ ...m, chairman: evt.data?.model || m.chairman, loading:{...m.loading, stage3:true} }));
+          patchLast(m => ({ ...m, chairperson: evt.data?.model || m.chairperson, loading:{...m.loading, stage3:true} }));
           break;
         case 'stage3_delta':
           patchLast(m => ({ ...m, streamingText: (m.streamingText || '') + evt.data }));
@@ -300,7 +300,7 @@ export default function HomePage() {
         <img src="/logo.svg" alt="LLM Council logo" width={42} height={42} style={{borderRadius:10, flexShrink:0}}/>
         <div style={{lineHeight:1.25}}>
           <div style={{fontSize:17, fontWeight:600}}>LLM Council <span style={{fontWeight:400, opacity:0.55}}>— Reconvened</span></div>
-          <div style={{fontSize:11, opacity:0.55}}>independent answers · anonymous peer review · chairman synthesis</div>
+          <div style={{fontSize:11, opacity:0.55}}>independent answers · anonymous peer review · chairperson synthesis</div>
         </div>
         <div style={{flex:1}}/>
         <button onClick={toggleGuide} style={btn}>{showGuide ? 'Hide guide' : 'Show guide'}</button>
@@ -332,7 +332,7 @@ export default function HomePage() {
           </div>
           <div style={{flex:1, minWidth:0, padding:'10px 14px', borderRight:'1px solid #e6eaee'}}>
             <Step n={3}/> <strong>Ask — the council deliberates</strong><br/>
-            Every seat answers independently, then ranks the others' answers anonymously, then the chairman synthesizes the final word. The transcript lands here.
+            Every seat answers independently, then ranks the others' answers anonymously, then the chairperson synthesizes the final word. The transcript lands here.
           </div>
           <div style={{width:PANEL_FLOW, flexShrink:0, padding:'10px 14px'}}>
             <Step n={4}/> <strong>Watch the council flow</strong><br/>
@@ -409,7 +409,7 @@ export default function HomePage() {
                   </div>
                   <div style={{fontSize:13, opacity:0.8}}>
                     Ask your question below. Every seat answers independently, they rank each other's answers anonymously,
-                    and the chairman synthesizes the final word — watch it flow through the diagram on the right.
+                    and the chairperson synthesizes the final word — watch it flow through the diagram on the right.
                   </div>
                 </div>
               )}

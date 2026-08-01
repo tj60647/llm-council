@@ -39,7 +39,7 @@ export default function CouncilFlow({ conversation }) {
         status: status(s2.length && s2.length >= seats.length && !loading.stage2, loading.stage2) },
       { key:'agg', label:'Aggregate ranking', detail: aggregate.length ? `${aggregate.length} ranked` : null,
         status: status(aggregate.length, s2.length && !aggregate.length) },
-      { key:'s3', label:'Chairman synthesis', detail: s3Text ? `${s3Text.length.toLocaleString()} chars` : null,
+      { key:'s3', label:'Chairperson synthesis', detail: s3Text ? `${s3Text.length.toLocaleString()} chars` : null,
         status: status(s3Text && !loading.stage3, loading.stage3) }
     ];
     return { seats, stages, aggregate, totals: assistant.metadata?.totals || null };

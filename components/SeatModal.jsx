@@ -1,6 +1,6 @@
 "use client";
 import { useEffect } from 'react';
-import { PROMPT_TEMPLATES } from '../lib/council/prompts.js';
+import { promptsForSeat } from '../lib/council/prompts.js';
 import { seatStyle, shortModelName } from '../lib/ui/seats.js';
 
 function pricePerMillion(v) {
@@ -53,7 +53,7 @@ export default function SeatModal({ seatIndex, modelId, meta, onClose }) {
           <div style={{flex:1, minWidth:0}}>
             <div style={{fontWeight:600, fontSize:15}}>{shortModelName(modelId) || 'Empty seat'}</div>
             <div style={{fontSize:11, color:'#52514e'}}>
-              Seat {seatIndex + 1} · {isChair ? 'chairman — writes the final synthesis' : 'council member'}
+              Seat {seatIndex + 1} · {isChair ? 'chairperson — writes the final synthesis' : 'council member'}
             </div>
           </div>
           <button onClick={onClose} aria-label="Close" style={{
@@ -93,25 +93,21 @@ export default function SeatModal({ seatIndex, modelId, meta, onClose }) {
             The council sends these as user messages — there is no separate system prompt, so behavior comes
             from this text plus the model's own defaults. <code style={{fontSize:10}}>{'{…}'}</code> marks runtime substitution.
           </p>
-          {PROMPT_TEMPLATES.map(t => {
-            const dimmed = t.stage.startsWith('Stage 3') && !isChair;
-            return (
-              <div key={t.stage} style={{
-                border:'1px solid #e2e8f0', borderRadius:8, padding:'10px 12px', marginBottom:8,
-                opacity: dimmed ? 0.55 : 1, background: dimmed ? '#fafbfc' : '#fff'
-              }}>
-                <div style={{display:'flex', gap:8, alignItems:'baseline', marginBottom:4}}>
-                  <strong style={{fontSize:12}}>{t.stage}</strong>
-                  <span style={{fontSize:10, color:'#52514e'}}>{t.appliesTo}{dimmed ? ' — not this seat' : ''}</span>
-                </div>
-                <div style={{fontSize:11, color:'#52514e', marginBottom:6}}>{t.summary}</div>
-                <pre style={{
-                  margin:0, padding:'8px 10px', background:'#f4f7f9', border:'1px solid #e2e8f0',
-                  borderRadius:6, fontSize:10.5, lineHeight:1.5, whiteSpace:'pre-wrap', overflowX:'auto'
-                }}>{t.template}</pre>
+          {promptsForSeat(seatIndex).map(t => (
+            <div key={t.stage} style={{
+              border:'1px solid #e2e8f0', borderRadius:8, padding:'10px 12px', marginBottom:8, background:'#fff'
+            }}>
+              <div style={{display:'flex', gap:8, alignItems:'baseline', marginBottom:4}}>
+                <strong style={{fontSize:12}}>{t.stage}</strong>
+                <span style={{fontSize:10, color:'#52514e'}}>{t.appliesTo}</span>
               </div>
-            );
-          })}
+              <div style={{fontSize:11, color:'#52514e', marginBottom:6}}>{t.summary}</div>
+              <pre style={{
+                margin:0, padding:'8px 10px', background:'#f4f7f9', border:'1px solid #e2e8f0',
+                borderRadius:6, fontSize:10.5, lineHeight:1.5, whiteSpace:'pre-wrap', overflowX:'auto'
+              }}>{t.template}</pre>
+            </div>
+          ))}
         </div>
       </div>
     </div>
