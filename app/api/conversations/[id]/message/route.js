@@ -5,15 +5,20 @@ import { stage2CollectRankings } from '../../../../../lib/council/stage2CollectR
 import { aggregateRankings } from '../../../../../lib/council/aggregateRankings.js';
 import { stage3SynthesizeFinal } from '../../../../../lib/council/stage3SynthesizeFinal.js';
 import { generateTitle } from '../../../../../lib/council/generateTitle.js';
+import { requireUser, ownsConversation, consumeRun } from '../../../../../lib/auth/guard.js';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // council runs are multi-minute; default serverless limits kill them
 
 export async function POST(req, props) {
+    const gate = await requireUser(req);
+    if (!gate.ok) return gate.response;
     const params = await props.params;
     const { content } = await req.json();
     const c = await getConversation(params.id);
-    if (!c) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    if (!c || !ownsConversation(c, gate.ctx)) return NextResponse.json({ error: 'Not found' }, { status: 404 });
+    const run = await consumeRun(gate.ctx);
+    if (!run.ok) return run.response;
     const isFirst = c.messages.length === 0;
     await addUserMessage(c.id, content);
     if (isFirst) { await updateTitle(c.id, await generateTitle(content)); }

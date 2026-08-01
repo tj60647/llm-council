@@ -82,12 +82,37 @@ instance **requires** Redis:
 npx vitest run
 ```
 
+### 8. Access Control (workshops)
+
+Auth is **off by default** — the app runs open until all three env vars exist:
+`AUTH_GITHUB_ID`, `AUTH_GITHUB_SECRET`, `AUTH_SECRET`. Once set, users must
+sign in with GitHub and either be on the allowlist or enter a group join code.
+
+Setup:
+
+1. Create a **GitHub OAuth App** (github.com → Settings → Developer settings →
+   OAuth Apps → New): Homepage URL = your deploy URL; Authorization callback
+   URL = `https://<your-app>/api/auth/callback`. Use a second OAuth app with
+   `http://localhost:3000/api/auth/callback` for local dev.
+2. Set `AUTH_GITHUB_ID` / `AUTH_GITHUB_SECRET` (per environment) plus
+   `AUTH_SECRET` (any long random string) and `ADMIN_EMAILS` (comma-separated;
+   these emails get full access and the `/admin` page).
+3. In `/admin`, create a **group**: validity window, allowed model set, and
+   runs-per-user-per-day cap. Share its **join code** at the workshop —
+   attendees sign in with GitHub, type the code, and are enrolled. You can also
+   allowlist emails directly (they skip the code step).
+
+Enforcement is server-side: conversations are per-user, model sets and
+validity windows are checked on every request, and council runs count against
+the daily cap (HTTP 429 when exhausted). Admin emails bypass all restrictions.
+
 ## Tech Stack
 
 - **Runtime:** Next.js 16 (App Router, Node runtime for SSE)
 - **Models:** Queried via OpenRouter API (default seats verified 2026-07-31; see `lib/config/models.js`)
 - **Visualization:** d3-sankey
 - **State:** Pluggable storage — Upstash Redis (serverless) or in‑memory (local dev)
+- **Auth:** Optional GitHub OAuth (hand-rolled, `jose` JWT cookies) with groups, join codes, validity windows, model entitlements, run caps
 - **Env:** `.env.local` restricted to server usage
 
 ## Roadmap & Internals

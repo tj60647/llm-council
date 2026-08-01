@@ -14,3 +14,7 @@ Thumbs.db
 *.log
 .vercel
 .env*
+
+# Vendor agent-skill docs injected by vercel CLI integrations
+.agents/
+skills-lock.json

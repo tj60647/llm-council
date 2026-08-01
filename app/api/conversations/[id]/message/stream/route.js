@@ -5,6 +5,7 @@ import { stage3SynthesizeFinal } from '../../../../../../lib/council/stage3Synth
 import { generateTitle } from '../../../../../../lib/council/generateTitle.js';
 import { getConversation, addUserMessage, addAssistantMessage, updateTitle, adapterName } from '../../../../../../lib/storage/index.js';
 import { DEFAULT_CHAIRMAN_MODEL } from '../../../../../../lib/config/models.js';
+import { requireUser, ownsConversation, consumeRun } from '../../../../../../lib/auth/guard.js';
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // council runs are multi-minute; default serverless limits kill them
@@ -19,10 +20,17 @@ const SSE_HEADERS = {
 };
 
 export async function POST(req, props) {
+    const gate = await requireUser(req);
+    if (!gate.ok) return gate.response;
     const params = await props.params;
     const { content } = await req.json();
     const conversationId = params?.id;
-    const c = conversationId ? await getConversation(conversationId) : null;
+    let c = conversationId ? await getConversation(conversationId) : null;
+    if (c && !ownsConversation(c, gate.ctx)) c = null;
+    if (c) {
+        const run = await consumeRun(gate.ctx);
+        if (!run.ok) return run.response;
+    }
     if (!c) {
         console.warn('[streamRoute] conversation not found for id:', conversationId);
         const stream = new ReadableStream({

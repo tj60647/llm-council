@@ -73,6 +73,25 @@ old slug now dead-end at an SSO wall. Same account, same project throughout.
 Local dev pins `STORAGE_ADAPTER=memory` in `.env.local` so it does not write
 into the production Redis store; delete that line to share state with prod.
 
+## Phase A.5: Access control for workshops (built 2026-08-01)
+
+Requested for workshop use: GitHub OAuth + allowlist/join-code enrollment,
+groups with validity windows + model sets + per-user daily run caps, per-user
+conversation isolation, and an `/admin` page (groups, members, usage, revoke).
+
+- Feature-flagged: auth activates only when `AUTH_GITHUB_ID`,
+  `AUTH_GITHUB_SECRET`, and `AUTH_SECRET` all exist; otherwise the app runs
+  open exactly as before. Deployed dark — safe.
+- Hand-rolled GitHub OAuth (authorization-code flow) + `jose` HS256 session
+  cookies; chosen over next-auth v5, which is still a perpetual beta.
+  Authorization (enrollment, windows, entitlements, caps, ADMIN_EMAILS) is
+  read from storage/env per request, so admin edits apply immediately.
+- `AUTH_SECRET` + `ADMIN_EMAILS` are set in all Vercel environments.
+- [ ] **User action to activate**: create the GitHub OAuth App (callback
+      `https://llm-council-gilt.vercel.app/api/auth/callback`), then set
+      `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` in Vercel and redeploy.
+- [ ] After activation: visit `/admin`, create a group, share its join code.
+
 ## Phase B: Robustness (next up)
 
 - Model validity guard: on conversation create, validate seat IDs against the

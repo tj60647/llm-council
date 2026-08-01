@@ -63,6 +63,27 @@ Adapter selection (`lib/storage/index.js`): `STORAGE_ADAPTER` env wins (`memory`
   - Gradient Green→Orange: Ranking quality (lower average → greener)
 - Future: Legend + tooltips + per-link latency overlay.
 
+## Access Control (optional)
+
+Feature-flagged on the presence of `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` +
+`AUTH_SECRET`; absent → open single-user mode (identity `local@anonymous`,
+admin). When enabled:
+
+- `lib/auth/session.js`: HS256 JWT session cookies (`jose`), 7-day TTL. The
+  JWT carries identity only; authorization is read live per request.
+- `lib/auth/github.js`: authorization-code flow; no `redirect_uri` sent, so
+  GitHub uses the OAuth app's registered callback (one app per environment).
+- `lib/auth/guard.js`: `requireUser`/`requireAdmin` resolve session → user →
+  group and window; `checkSeatModels` enforces group model sets;
+  `consumeRun` enforces per-day caps (Redis INCR, 48h TTL keys);
+  `ownsConversation` scopes data per user. Admins (`ADMIN_EMAILS`) bypass.
+- Storage keys: `auth:group:{id}`, `auth:groupcode:{CODE}`, `auth:user:{email}`,
+  `auth:runs:{email}:{date}`; conversations gain `owner` and a per-owner
+  index `council:convs:{email}`.
+- Enrollment: pre-created user record (allowlist) or `POST /api/auth/enroll`
+  with a group join code. Revocation and group edits apply on the next request.
+- `/admin` (client) + `/api/admin/*`: groups CRUD, members, usage counts.
+
 ## Environment & Secrets
 
 - `OPENROUTER_API_KEY` only accessed in server files; never exposed to client bundle.

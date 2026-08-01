@@ -7,7 +7,10 @@ import ModelRing from '../components/ModelRing';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 
 export default function HomePage() {
-  // Header state
+  // Auth state: null = loading; me.status routes between login/enroll/app screens
+  const [me, setMe] = useState(null);
+  const [joinCode, setJoinCode] = useState('');
+  const [joinError, setJoinError] = useState(null);
   // Conversations state
   const [conversations, setConversations] = useState([]);
   const [currentConversation, setCurrentConversation] = useState(null);
@@ -18,6 +21,34 @@ export default function HomePage() {
   const [selectedModelsForNew, setSelectedModelsForNew] = useState(DEFAULT_COUNCIL_MODELS);
   const [editingModels, setEditingModels] = useState(false);
   const [tempModels, setTempModels] = useState([]);
+
+  async function fetchMe() {
+    const res = await fetch('/api/auth/me');
+    const data = await res.json();
+    setMe(data);
+    return data;
+  }
+
+  async function enroll(e) {
+    e.preventDefault();
+    setJoinError(null);
+    const res = await fetch('/api/auth/enroll', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code: joinCode }) });
+    const data = await res.json();
+    if (!res.ok) { setJoinError(data.error || 'enrollment failed'); return; }
+    const m = await fetchMe();
+    if (m.status === 'active' || m.status === 'open' || m.admin) listConversations();
+  }
+
+  async function signOut() {
+    await fetch('/api/auth/logout', { method:'POST' });
+    window.location.reload();
+  }
+
+  // When a group restricts models, seed the default seats from it so new
+  // conversations start valid.
+  useEffect(() => {
+    if (me?.group?.models?.length) setSelectedModelsForNew(me.group.models.slice(0, 4));
+  }, [me?.group?.models?.join(',')]);
 
   async function listConversations() {
     try {
@@ -76,6 +107,9 @@ export default function HomePage() {
             setError('Message failed (fallback)');
           }
         } catch(fallErr){ setError('Message stream & fallback failed'); }
+      } else if (res.status === 429) {
+        const d = await res.json().catch(() => ({}));
+        setError(`Daily council-run limit reached${d.limit ? ` (${d.limit}/day)` : ''}. Try again tomorrow.`);
       } else {
         setError('Failed message');
       }
@@ -122,14 +156,80 @@ export default function HomePage() {
       });
     }
     setLoading(false);
+    if (me?.auth_enabled) fetchMe(); // refresh runs-left counter
   }
 
-  useEffect(() => { listConversations(); }, []);
+  useEffect(() => {
+    fetchMe().then(m => {
+      if (!m.auth_enabled || m.status === 'active' || m.admin) listConversations();
+    });
+  }, []);
+
+  const authError = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('auth_error') : null;
+
+  const gateWrap = { display:'flex', alignItems:'center', justifyContent:'center', height:'100vh', background:'#fafafa' };
+  const gateCard = { background:'#fff', border:'1px solid #ddd', borderRadius:8, padding:32, maxWidth:420, textAlign:'center' };
+
+  if (!me) {
+    return <div style={gateWrap}><div style={gateCard}>Loading…</div></div>;
+  }
+  if (me.auth_enabled && me.status === 'unauthenticated') {
+    return (
+      <div style={gateWrap}><div style={gateCard}>
+        <h2 style={{marginTop:0}}>LLM Council</h2>
+        <p style={{fontSize:14}}>Sign in to convene the council.</p>
+        {authError && <p style={{color:'red', fontSize:13}}>Sign-in failed ({authError}). Try again.</p>}
+        <a href="/api/auth/login" style={{display:'inline-block', padding:'10px 18px', background:'#24292f', color:'#fff', borderRadius:6, textDecoration:'none', fontSize:14}}>Sign in with GitHub</a>
+      </div></div>
+    );
+  }
+  if (me.auth_enabled && (me.status === 'not_enrolled' || me.status === 'group_missing')) {
+    return (
+      <div style={gateWrap}><div style={gateCard}>
+        <h2 style={{marginTop:0}}>Almost in</h2>
+        <p style={{fontSize:14}}>Signed in as <strong>{me.email}</strong>. Enter your workshop join code to get access.</p>
+        <form onSubmit={enroll}>
+          <input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="XXXX-XXXX" style={{padding:'10px', fontSize:16, fontFamily:'monospace', textAlign:'center', border:'1px solid #ccc', borderRadius:6, width:160}}/>
+          <div style={{marginTop:12}}>
+            <button type="submit" style={{padding:'8px 16px'}}>Join</button>
+            <button type="button" onClick={signOut} style={{marginLeft:8, fontSize:12}}>Sign out</button>
+          </div>
+        </form>
+        {joinError && <p style={{color:'red', fontSize:13}}>{joinError === 'invalid_code' ? 'That code is not valid.' : joinError === 'expired' ? 'That workshop has ended.' : joinError}</p>}
+      </div></div>
+    );
+  }
+  if (me.auth_enabled && ['revoked', 'expired', 'not_yet_valid'].includes(me.status)) {
+    const msg = me.status === 'revoked' ? 'Your access has been revoked.'
+      : me.status === 'expired' ? `This workshop's access window ended ${me.group?.valid_until ? new Date(me.group.valid_until).toLocaleString() : ''}.`
+      : `Access starts ${me.group?.valid_from ? new Date(me.group.valid_from).toLocaleString() : 'soon'}.`;
+    return (
+      <div style={gateWrap}><div style={gateCard}>
+        <h2 style={{marginTop:0}}>No access</h2>
+        <p style={{fontSize:14}}>{msg}</p>
+        <button onClick={signOut} style={{fontSize:12}}>Sign out</button>
+      </div></div>
+    );
+  }
 
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
       {/* Header */}
       <header style={{padding:'12px 20px', borderBottom:'1px solid #ddd', background:'#ffffff'}}>
+        {me.auth_enabled && (
+          <div style={{float:'right', fontSize:12, textAlign:'right'}}>
+            <div><strong>{me.name || me.email}</strong>{me.admin && ' · admin'}</div>
+            {me.group && <div style={{opacity:0.75}}>
+              {me.group.name}
+              {me.group.runs_per_day > 0 && ` · ${Math.max(0, me.group.runs_per_day - (me.runs_today || 0))}/${me.group.runs_per_day} runs left`}
+              {me.group.valid_until && ` · until ${new Date(me.group.valid_until).toLocaleDateString()}`}
+            </div>}
+            <div style={{marginTop:4}}>
+              {me.admin && <a href="/admin" style={{marginRight:8}}>Admin</a>}
+              <button onClick={signOut} style={{fontSize:11}}>Sign out</button>
+            </div>
+          </div>
+        )}
         <h2 style={{margin:'0 0 4px', fontWeight:600}}>LLM Council</h2>
         <p style={{margin:0, fontSize:13, lineHeight:'18px', maxWidth:960}}>
           A conversation is a titled session with a set of <strong>seats</strong>. Each seat holds one conversationalist model.
