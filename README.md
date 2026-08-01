@@ -1,6 +1,13 @@
-# LLM Council (Next.js Edition)
+# LLM Council — Reconvened
 
 ![llmcouncil](header.jpg)
+
+> Derived from [Andrej Karpathy's llm-council](https://github.com/karpathy/llm-council) —
+> his council adjourned as a weekend vibe-code; this fork **reconvenes** it as a
+> Next.js app with persistent storage, streaming, GitHub sign-in, and workshop
+> seating (groups, join codes, model entitlements, run caps). The 3‑stage
+> deliberation design — independent answers, anonymized peer review, chairman
+> synthesis — is his idea, gratefully borrowed.
 
 LLM Council lets you pose a prompt to a set of model "seats". Each seat holds a model. The council executes a 3‑stage collaborative reasoning process via OpenRouter:
 

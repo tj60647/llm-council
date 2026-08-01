@@ -176,10 +176,11 @@ export default function HomePage() {
   if (me.auth_enabled && me.status === 'unauthenticated') {
     return (
       <div style={gateWrap}><div style={gateCard}>
-        <h2 style={{marginTop:0}}>LLM Council</h2>
+        <h2 style={{marginTop:0}}>LLM Council <span style={{fontWeight:400, opacity:0.6}}>— Reconvened</span></h2>
         <p style={{fontSize:14}}>Sign in to convene the council.</p>
         {authError && <p style={{color:'red', fontSize:13}}>Sign-in failed ({authError}). Try again.</p>}
         <a href="/api/auth/login" style={{display:'inline-block', padding:'10px 18px', background:'#24292f', color:'#fff', borderRadius:6, textDecoration:'none', fontSize:14}}>Sign in with GitHub</a>
+        <p style={{fontSize:11, opacity:0.55, marginTop:16, marginBottom:0}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></p>
       </div></div>
     );
   }
@@ -230,7 +231,8 @@ export default function HomePage() {
             </div>
           </div>
         )}
-        <h2 style={{margin:'0 0 4px', fontWeight:600}}>LLM Council</h2>
+        <h2 style={{margin:'0 0 2px', fontWeight:600}}>LLM Council <span style={{fontWeight:400, opacity:0.6}}>— Reconvened</span></h2>
+        <p style={{margin:'0 0 6px', fontSize:11, opacity:0.6}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></p>
         <p style={{margin:0, fontSize:13, lineHeight:'18px', maxWidth:960}}>
           A conversation is a titled session with a set of <strong>seats</strong>. Each seat holds one conversationalist model.
           When you send a prompt the council runs multi-stage reasoning: models respond, they peer-evaluate, rankings are
