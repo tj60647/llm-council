@@ -53,7 +53,9 @@ export default function SankeyCouncil({ conversation }) {
     links.push({ source:chairIdx, target:finalIdx, value:seats.length, kind:'answer' });
 
     const height = Math.max(210, seats.length * 30 + 54);
-    const gen = sankey().nodeWidth(11).nodePadding(9).extent([[2, 20], [W - 52, height - 8]]);
+    // Only seat nodes carry labels, so the right margin just clears the last
+    // node rather than reserving room for text.
+    const gen = sankey().nodeWidth(9).nodePadding(9).extent([[2, 22], [W - 14, height - 8]]);
     const graph = gen({ nodes: nodes.map((d, i) => ({ ...d, index:i })), links });
 
     // Column captions sit above the first node of each column
@@ -99,10 +101,14 @@ export default function SankeyCouncil({ conversation }) {
           const isSeat = Boolean(s);
           return (
             <g key={i}>
+              {/* Structural nodes stay recessive — the column captions already
+                  name them, so seats keep the visual weight and the labels. */}
               <rect x={n.x0} y={n.y0} width={n.x1 - n.x0} height={Math.max(3, n.y1 - n.y0)} rx={3}
-                fill={isSeat ? s.fill : '#1e242c'} stroke={isSeat ? s.border : 'none'} />
+                fill={isSeat ? s.fill : '#dfe4e9'} stroke={isSeat ? s.border : '#cbd3da'} />
               <title>{isSeat ? `Seat ${n.seat + 1}: ${shortModelName(n.model)}` : n.name}</title>
-              <text x={n.x1 + 3} y={(n.y0 + n.y1) / 2} fontSize={8.5} fill={INK_2} dominantBaseline="middle">{n.name}</text>
+              {isSeat && (
+                <text x={n.x1 + 3} y={(n.y0 + n.y1) / 2} fontSize={8.5} fill={INK_2} dominantBaseline="middle">{n.name}</text>
+              )}
             </g>
           );
         })}

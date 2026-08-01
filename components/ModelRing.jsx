@@ -61,7 +61,7 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
     : available;
 
   return (
-    <div style={{display:'flex', flexWrap:'wrap', gap:8, alignItems:'flex-start'}}>
+    <div style={{display:'flex', flexWrap:'wrap', gap:'14px 10px', alignItems:'flex-start'}}>
       {seats.map((m, i) => {
         const s = seatStyle(i);
         return (

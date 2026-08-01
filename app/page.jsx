@@ -358,7 +358,7 @@ export default function HomePage() {
         <ul style={{listStyle:'none', padding:0, margin:0}}>
           {conversations.map(c => (
             <li key={c.id} style={{marginBottom:8}}>
-              <button style={{
+              <button data-conversation-id={c.id} style={{
                 ...btn,
                 width:'100%', textAlign:'left', fontSize:13, padding:'7px 10px',
                 ...(currentConversation?.id === c.id ? { borderColor:'#1e242c', background:'#eef2f6', fontWeight:600 } : {})
