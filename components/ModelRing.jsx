@@ -20,7 +20,7 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
         const res = await fetch('/api/models');
         if(res.ok){
           const data = await res.json();
-          setAvailable(data);
+          setAvailable(data.models || []);
         }
       } catch {}
     }

@@ -44,6 +44,20 @@ export default function HomePage() {
     window.location.reload();
   }
 
+  // Guide strip: visible until dismissed; reopen via the header "Guide" button
+  const [showGuide, setShowGuide] = useState(true);
+  useEffect(() => {
+    try { if (localStorage.getItem('council_guide_hidden') === '1') setShowGuide(false); } catch {}
+  }, []);
+  function toggleGuide() {
+    setShowGuide(s => {
+      try { localStorage.setItem('council_guide_hidden', s ? '1' : '0'); } catch {}
+      return !s;
+    });
+  }
+
+  const firstName = me?.auth_enabled ? ((me?.name || '').trim().split(/\s+/)[0] || null) : null;
+
   // When a group restricts models, seed the default seats from it so new
   // conversations start valid.
   useEffect(() => {
@@ -216,35 +230,57 @@ export default function HomePage() {
   return (
     <div style={{ display:'flex', flexDirection:'column', height:'100vh' }}>
       {/* Header */}
-      <header style={{padding:'12px 20px', borderBottom:'1px solid #ddd', background:'#ffffff'}}>
+      <header style={{display:'flex', alignItems:'center', gap:14, padding:'10px 20px', borderBottom:'1px solid #ddd', background:'#ffffff'}}>
+        <img src="/logo.svg" alt="LLM Council logo" width={42} height={42} style={{borderRadius:10, flexShrink:0}}/>
+        <div style={{lineHeight:1.25}}>
+          <div style={{fontSize:17, fontWeight:600}}>LLM Council <span style={{fontWeight:400, opacity:0.55}}>— Reconvened</span></div>
+          <div style={{fontSize:11, opacity:0.55}}>independent answers · anonymous peer review · chairman synthesis</div>
+        </div>
+        <div style={{flex:1}}/>
+        <button onClick={toggleGuide} title="Show or hide the guide" style={{fontSize:12, padding:'4px 10px', border:'1px solid #ccc', borderRadius:16, background: showGuide ? '#eef2f6' : '#fff', cursor:'pointer'}}>? Guide</button>
         {me.auth_enabled && (
-          <div style={{float:'right', fontSize:12, textAlign:'right'}}>
-            <div><strong>{me.name || me.email}</strong>{me.admin && ' · admin'}</div>
-            {me.group && <div style={{opacity:0.75}}>
-              {me.group.name}
-              {me.group.runs_per_day > 0 && ` · ${Math.max(0, me.group.runs_per_day - (me.runs_today || 0))}/${me.group.runs_per_day} runs left`}
-              {me.group.valid_until && ` · until ${new Date(me.group.valid_until).toLocaleDateString()}`}
-            </div>}
-            <div style={{marginTop:4}}>
-              {me.admin && <a href="/admin" style={{marginRight:8}}>Admin</a>}
-              <button onClick={signOut} style={{fontSize:11}}>Sign out</button>
-            </div>
+          <div style={{display:'flex', alignItems:'center', gap:8}}>
+            {me.group && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #cfd8e0', borderRadius:16, background:'#f2f5f8'}} title={me.group.valid_until ? `access until ${new Date(me.group.valid_until).toLocaleString()}` : undefined}>{me.group.name}</span>}
+            {me.group?.runs_per_day > 0 && (
+              <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #e4d3ac', borderRadius:16, background:'#fbf5e6'}} title="Council runs remaining today">
+                {Math.max(0, me.group.runs_per_day - (me.runs_today || 0))}/{me.group.runs_per_day} runs
+              </span>
+            )}
+            {me.admin && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #1e242c', borderRadius:16, background:'#1e242c', color:'#fff'}}>admin</span>}
+            <span style={{fontSize:13, fontWeight:600}}>{me.name || me.email}</span>
+            {me.admin && <a href="/admin" style={{fontSize:12}}>Admin</a>}
+            <button onClick={signOut} style={{fontSize:11, cursor:'pointer'}}>Sign out</button>
           </div>
         )}
-        <h2 style={{margin:'0 0 2px', fontWeight:600}}>LLM Council <span style={{fontWeight:400, opacity:0.6}}>— Reconvened</span></h2>
-        <p style={{margin:'0 0 6px', fontSize:11, opacity:0.6}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></p>
-        <p style={{margin:0, fontSize:13, lineHeight:'18px', maxWidth:960}}>
-          A conversation is a titled session with a set of <strong>seats</strong>. Each seat holds one conversationalist model.
-          When you send a prompt the council runs multi-stage reasoning: models respond, they peer-evaluate, rankings are
-          aggregated, and a chairman synthesizes a final answer. Adjust default seats on the left, then create conversations
-          with those occupants or edit seats per conversation.
-        </p>
       </header>
+      {/* Guide strip */}
+      {showGuide && (
+        <div style={{display:'flex', gap:20, alignItems:'flex-start', padding:'10px 20px', borderBottom:'1px solid #e6eaee', background:'#f7f9fb', fontSize:12, lineHeight:'17px'}}>
+          <div style={{flex:1, minWidth:0}}>
+            <strong>1 · Conversations</strong><br/>
+            A conversation is one titled session with the council. Creating it snapshots your current seats; its transcript fills the middle panel, the flow diagram on the right.
+          </div>
+          <div style={{flex:1, minWidth:0}}>
+            <strong>2 · Conversationalists = seats</strong><br/>
+            Each seat holds one model. <strong>Seat 1 is the chairman</strong> — it writes the final synthesized answer after the others weigh in.
+          </div>
+          <div style={{flex:1, minWidth:0}}>
+            <strong>3 · Add / remove a seat</strong><br/>
+            In the Conversationalists panel, click <em>+ Add Seat</em> (up to 7) or the <em>×</em> on a seat. For an existing conversation, hit <em>Edit Seats</em> first, then Save.
+          </div>
+          <div style={{flex:1, minWidth:0}}>
+            <strong>4 · Change a seat's model</strong><br/>
+            Click the seat pill and pick from the list{me.group?.models?.length ? ' (your group limits the catalog)' : ''}. Then ask a question — every seat answers, they rank each other anonymously, the chairman concludes.
+          </div>
+          <button onClick={toggleGuide} title="Hide guide" style={{border:'none', background:'none', cursor:'pointer', fontSize:14, opacity:0.5, padding:0}}>×</button>
+        </div>
+      )}
       <div style={{ display:'flex', flex:1, minHeight:0 }}>
       {/* Conversations Panel */}
       <div style={{ width:260, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
-        <h3 style={{marginTop:0}}>Conversations</h3>
-        <button onClick={() => createConversation(selectedModelsForNew)} style={{marginBottom:12}}>New Conversation</button>
+        <h3 style={{margin:'0 0 2px'}}>Conversations</h3>
+        <div style={{fontSize:11, opacity:0.6, marginBottom:10}}>your sessions with the council</div>
+        <button onClick={() => createConversation(selectedModelsForNew)} style={{marginBottom:12}}>+ New Conversation</button>
         {offline && <div style={{color:'#b36b00', fontSize:12, marginBottom:8}}>API unreachable. Retrying...</div>}
         {error && <div style={{color:'red', fontSize:12, marginBottom:8}}>Error: {error}</div>}
         <ul style={{listStyle:'none', padding:0, margin:0}}>
@@ -260,7 +296,8 @@ export default function HomePage() {
       </div>
       {/* Conversationalists Panel */}
       <div style={{ width:300, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fff' }}>
-        <h3 style={{marginTop:0}}>Conversationalists</h3>
+        <h3 style={{margin:'0 0 2px'}}>Conversationalists</h3>
+        <div style={{fontSize:11, opacity:0.6, marginBottom:8}}>the seats — one model each, seat 1 chairs</div>
         <h4 style={{margin:'8px 0 4px'}}>Default Seats (New)</h4>
         <ModelRing value={selectedModelsForNew} onChange={setSelectedModelsForNew} editable={true} showSeatNumbers={true} />
         <div style={{marginTop:20}}>
@@ -292,6 +329,20 @@ export default function HomePage() {
         {currentConversation ? (
           <>
             <div style={{flex:1, overflowY:'auto', padding:16}}>
+              {currentConversation.messages.length === 0 && (
+                <div style={{background:'#f7f9fb', border:'1px solid #e2e8f0', borderRadius:8, padding:'18px 20px', maxWidth:640}}>
+                  <div style={{fontSize:15, fontWeight:600, marginBottom:6}}>The council is seated{firstName ? `, ${firstName}` : ''}.</div>
+                  <div style={{fontSize:13, marginBottom:8}}>
+                    {(currentConversation.models || []).length} conversationalists at the table:{' '}
+                    {(currentConversation.models || []).map(m => m.replace(/^[^/]+\//, '')).join(', ')}.
+                    {' '}Seat 1 chairs.
+                  </div>
+                  <div style={{fontSize:13, opacity:0.8}}>
+                    Ask your question below. Every seat answers independently, they rank each other's answers anonymously,
+                    and the chairman synthesizes the final word — watch it flow through the diagram on the right.
+                  </div>
+                </div>
+              )}
               {currentConversation.messages.map((m,i)=>(
                 <div key={i} style={{marginBottom:16, background:'#fff', border:'1px solid #e5e5e5', borderRadius:6, padding:12}}>
                   <div style={{fontWeight:'600', marginBottom:4}}>{m.role}</div>
@@ -310,7 +361,15 @@ export default function HomePage() {
             </div>
           </>
         ) : (
-          <div style={{padding:32}}>Select or create a conversation.</div>
+          <div style={{padding:32, maxWidth:560}}>
+            <h3 style={{margin:'0 0 6px'}}>Welcome{firstName ? `, ${firstName}` : ''}.</h3>
+            <p style={{fontSize:13, margin:'0 0 14px', opacity:0.8}}>
+              Convene a council: check the seats in the Conversationalists panel, then start a conversation.
+              Not sure what anything means? Open the <button onClick={toggleGuide} style={{border:'none', background:'none', padding:0, cursor:'pointer', textDecoration:'underline', fontSize:13}}>guide</button>.
+            </p>
+            <button onClick={() => createConversation(selectedModelsForNew)} style={{padding:'8px 16px'}}>+ New Conversation</button>
+            {conversations.length > 0 && <p style={{fontSize:12, opacity:0.6, marginTop:12}}>…or pick a previous conversation from the left.</p>}
+          </div>
         )}
       </div>
       {/* Visualization Panel */}
@@ -319,6 +378,15 @@ export default function HomePage() {
         <SankeyCouncil conversation={currentConversation} />
       </div>
       </div>{/* end flex main row */}
+      {/* Footer */}
+      <footer style={{display:'flex', alignItems:'center', gap:14, padding:'7px 20px', borderTop:'1px solid #ddd', background:'#fff', fontSize:11, color:'#555'}}>
+        <span style={{fontWeight:600}}>LLM Council — Reconvened</span>
+        <span style={{opacity:0.75}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></span>
+        <div style={{flex:1}}/>
+        <a href="https://github.com/tj60647/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>source</a>
+        {me.admin && <a href="/admin" style={{color:'inherit'}}>admin</a>}
+        <span style={{opacity:0.6}}>{me.auth_enabled ? (me.email || 'signed in') : 'open mode'}</span>
+      </footer>
     </div>
   );
 }
