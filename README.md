@@ -12,11 +12,11 @@ The UI shows conversations, seat configuration, message history, and a Sankey vi
 
 ## Current Architecture
 
-Single Next.js (App Router) app in `next/`:
+Single Next.js (App Router) app at the repo root:
 
-- API routes under `next/app/api` stream stage events via Server‑Sent Events (SSE).
-- Pure council orchestration functions live in `next/lib/council`.
-- Temporary in‑memory storage adapter in `next/lib/storage/memory.js` (to be replaced by Redis/Postgres/KV).
+- API routes under `app/api` stream stage events via Server‑Sent Events (SSE).
+- Pure council orchestration functions live in `lib/council`.
+- Pluggable storage (`lib/storage`): Upstash Redis when configured (required for serverless deploys), in‑memory fallback for local dev.
 - Visualization (`SankeyCouncil`) renders full skeleton immediately; link colors update as stages complete & rankings aggregate.
 - Seat metaphor (`ModelRing`) allows adding/removing models and per‑conversation overrides.
 
@@ -27,13 +27,12 @@ Legacy Python FastAPI + Vite stack has been removed. See git tag `legacy-pre-rem
 ### 1. Install Dependencies
 
 ```powershell
-cd next
 npm install
 ```
 
 ### 2. Configure API Key
 
-Create `next/.env.local` (or `.env` if you prefer) with your OpenRouter key:
+Create `.env.local` with your OpenRouter key:
 
 ```bash
 OPENROUTER_API_KEY=sk-or-v1-...
@@ -44,7 +43,6 @@ Do NOT expose this key client-side; only server files read it. Obtain a key at h
 ### 3. Run Dev Server
 
 ```powershell
-cd next
 npm run dev
 ```
 
@@ -61,19 +59,35 @@ Open http://localhost:3000.
 ### 5. Building & Production
 
 ```powershell
-cd next
 npm run build
 npm run start
 ```
 
-Deploy on a Node‑capable environment (e.g. Vercel Node runtime). Ensure SSE endpoints are not proxied through edge middleware that buffers responses.
+### 6. Deploying (Vercel)
+
+In-memory storage does not survive across serverless invocations — a deployed
+instance **requires** Redis:
+
+1. Add **Upstash for Redis** via the Vercel Marketplace (provides
+   `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN`; the `KV_REST_API_*`
+   names also work). The adapter activates automatically when these exist.
+2. Set `OPENROUTER_API_KEY` in project environment variables.
+3. Ensure SSE endpoints are not proxied through middleware that buffers
+   responses. Message routes declare `maxDuration = 300` for long council runs.
+4. After deploy, `GET /api/health` should report `{ status: "ok", adapter: "redis" }`.
+
+### 7. Tests
+
+```powershell
+npx vitest run
+```
 
 ## Tech Stack
 
-- **Runtime:** Next.js 15 (App Router, Node runtime for SSE)
-- **Models:** Queried via OpenRouter API
+- **Runtime:** Next.js 16 (App Router, Node runtime for SSE)
+- **Models:** Queried via OpenRouter API (default seats verified 2026-07-31; see `lib/config/models.js`)
 - **Visualization:** d3-sankey
-- **State:** In‑memory adapter (pending pluggable persistence)
+- **State:** Pluggable storage — Upstash Redis (serverless) or in‑memory (local dev)
 - **Env:** `.env.local` restricted to server usage
 
 ## Roadmap & Internals

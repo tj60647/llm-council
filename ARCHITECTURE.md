@@ -13,12 +13,12 @@ This document provides a concise, up-to-date overview of the LLM Council archite
 
 ## Key Modules
 
-- `next/lib/council/*`: Pure functions for each stage + ranking parse + title generation.
-- `next/lib/openrouter/*`: Thin wrappers around OpenRouter API requests; all server-side usage.
-- `next/lib/storage/index.js`: Adapter entrypoint (currently memory; pluggable for Redis/Postgres/KV).
-- `next/app/api/*`: Route handlers (Node runtime) orchestrating multi-stage processing and streaming.
-- `next/components/SankeyCouncil.jsx`: Visualization of stage transitions, rankings, and synthesis provenance.
-- `next/components/ModelRing.jsx`: Seat metaphor enabling dynamic model selection & per-conversation overrides.
+- `lib/council/*`: Pure functions for each stage + ranking parse + title generation.
+- `lib/openrouter/*`: Thin wrappers around OpenRouter API requests; all server-side usage.
+- `lib/storage/index.js`: Async storage facade; selects Upstash Redis when configured, else memory.
+- `app/api/*`: Route handlers (Node runtime) orchestrating multi-stage processing and streaming.
+- `components/SankeyCouncil.jsx`: Visualization of stage transitions, rankings, and synthesis provenance.
+- `components/ModelRing.jsx`: Seat metaphor enabling dynamic model selection & per-conversation overrides.
 
 ## Streaming Protocol (SSE)
 
@@ -41,9 +41,12 @@ Client consumes these to update UI panels and color Sankey links.
 
 ## Storage Abstraction
 
-Interface methods: `createConversation`, `listConversations`, `getConversation`, `updateTitle`, `addUserMessage`, `addAssistantMessage`, `updateConversationModels`, `conversationCount`.
+Interface methods (all async): `createConversation`, `listConversations`, `getConversation`, `updateTitle`, `addUserMessage`, `addAssistantMessage`, `updateConversationModels`, `conversationCount`.
 
-Memory adapter persists via `globalThis` for dev hot reload stability. Future adapters will implement same contract.
+Adapter selection (`lib/storage/index.js`): `STORAGE_ADAPTER` env wins (`memory` | `redis`); otherwise Redis auto-activates when `UPSTASH_REDIS_REST_URL`/`UPSTASH_REDIS_REST_TOKEN` (or `KV_REST_API_*`) are present, else memory.
+
+- Memory adapter persists via `globalThis` for dev hot-reload stability. Not viable on serverless — instances don't share memory.
+- Redis adapter (`lib/storage/redis.js`, @upstash/redis REST client): conversations as JSON under `council:conv:{id}`, ordering via zset `council:conv:index` scored by creation time. Whole-object read-modify-write — fine single-user, revisit for concurrency.
 
 ## Seat Metaphor
 

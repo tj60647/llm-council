@@ -52,7 +52,7 @@ Results are streamed in real-time to the client via Server-Sent Events (SSE) and
 │   └── storage/
 │       ├── index.js            # Adapter interface (exports storage functions)
 │       ├── memory.js           # In-memory adapter using globalThis (dev hot-reload safe)
-│       └── redis.js            # Redis stub — not yet implemented
+│       └── redis.js            # Upstash Redis adapter (REST; serverless-safe)
 ├── package.json
 ├── next.config.mjs             # reactStrictMode: true; minimal config
 ├── README.md
@@ -76,7 +76,7 @@ npm run build     # Compile for production
 npm run start     # Serve production build
 ```
 
-There are no test scripts or linting commands configured. The `package.json` has only `dev`, `build`, and `start`.
+Tests use vitest (`npx vitest run`); suites live in `__tests__/`. No linting configured.
 
 ---
 
@@ -86,7 +86,8 @@ Create a `.env.local` file in the repo root:
 
 ```bash
 OPENROUTER_API_KEY=sk-or-v1-...   # Required — obtain from https://openrouter.ai/
-STORAGE_ADAPTER=memory             # Optional — defaults to 'memory'; future: 'redis', 'postgres'
+STORAGE_ADAPTER=memory             # Optional override: 'memory' | 'redis'. Unset = auto: redis when Upstash env vars exist, else memory
+# UPSTASH_REDIS_REST_URL= / UPSTASH_REDIS_REST_TOKEN=   # Enable Redis adapter (KV_REST_API_* names also accepted); required on Vercel
 ```
 
 **Critical:** `OPENROUTER_API_KEY` must only be accessed in server-side files (API routes, `lib/`). Never import or reference it in React components or files that could be bundled for the client.
@@ -97,12 +98,12 @@ STORAGE_ADAPTER=memory             # Optional — defaults to 'memory'; future: 
 
 | Layer | Technology |
 |-------|------------|
-| Framework | Next.js 15 (App Router) |
-| UI | React 18 with hooks; inline styles (no CSS files) |
+| Framework | Next.js 16 (App Router) |
+| UI | React 19 with hooks; inline styles (no CSS files) |
 | Visualization | d3-sankey 0.12.3 |
 | AI Models | OpenRouter API (`https://openrouter.ai/api/v1`) |
 | Streaming | Server-Sent Events (SSE) via Node.js runtime |
-| Storage | In-memory via `globalThis` (Redis/Postgres adapters planned) |
+| Storage | Async facade: Upstash Redis (auto when configured) or in-memory `globalThis` fallback |
 | Language | JavaScript ES6+ (ESM modules — `"type": "module"` in package.json) |
 
 **Runtime requirement:** SSE routes use `export const runtime = 'nodejs'` and are **incompatible with Vercel Edge Runtime**, which buffers streaming responses.
@@ -245,7 +246,7 @@ To implement a new adapter: create `lib/storage/<adapter>.js` exporting the same
 - **No tests** — no test runner, no test files. Vitest or Jest would be the natural fit for `lib/council/` unit tests.
 - **No linting** — no ESLint, Prettier, or Biome configuration.
 - **No CI/CD** — no `.github/workflows/` or other automation.
-- **No Redis/Postgres adapter** — `lib/storage/redis.js` is a stub.
+- **Redis adapter is whole-object read-modify-write** — fine single-user; not safe for concurrent writers to one conversation.
 - **No authentication** — the app is open; all conversations are shared in-memory.
 - **No rate limiting** — no per-IP or per-API-key limits on the council endpoints.
 - **No cost estimation** — OpenRouter usage cost is not tracked or displayed.
