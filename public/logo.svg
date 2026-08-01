@@ -1,14 +1,17 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
-  <!-- LLM Council mark, monochrome: seats in a ring around the table;
-       the larger seat is the chairman. -->
-  <circle cx="512" cy="512" r="512" fill="#17181c"/>
+  <!-- LLM Council mark: differently-shaped members around a round table,
+       black outlines, monochromatic blue-grey fills. Large circle = chairman. -->
+  <rect width="1024" height="1024" fill="#ffffff"/>
   <!-- table -->
-  <circle cx="512" cy="512" r="310" fill="none" stroke="#ffffff" stroke-opacity="0.10" stroke-width="14"/>
-  <!-- seats -->
-  <circle cx="512" cy="202" r="104" fill="#ffffff"/>
-  <circle cx="780" cy="357" r="70" fill="#ffffff"/>
-  <circle cx="780" cy="667" r="70" fill="#ffffff"/>
-  <circle cx="512" cy="822" r="70" fill="#ffffff"/>
-  <circle cx="244" cy="667" r="70" fill="#ffffff"/>
-  <circle cx="244" cy="357" r="70" fill="#ffffff"/>
+  <circle cx="512" cy="512" r="310" fill="none" stroke="#1e242c" stroke-opacity="0.22" stroke-width="10"/>
+  <g stroke="#1e242c" stroke-width="12" stroke-linejoin="round">
+    <!-- chairman -->
+    <circle cx="512" cy="202" r="96" fill="#8fa3b8"/>
+    <!-- members -->
+    <polygon points="780,247 875,412 685,412" fill="#dce3ea"/>
+    <rect x="714" y="601" width="132" height="132" fill="#c7d1dc"/>
+    <polygon points="512,727 607,822 512,917 417,822" fill="#cfd8e0"/>
+    <polygon points="244,582 325,641 294,736 194,736 163,641" fill="#b3c0cd"/>
+    <polygon points="244,275 315,316 315,398 244,439 173,398 173,316" fill="#d4dce4"/>
+  </g>
 </svg>
