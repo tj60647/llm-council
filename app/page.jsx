@@ -6,6 +6,11 @@ import ModelSelector from '../components/ModelSelector';
 import ModelRing from '../components/ModelRing';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 
+// Shared button styles — every button on the page uses one of these three
+const btn = { padding:'5px 12px', border:'1px solid #c9d1d9', borderRadius:6, background:'#fff', color:'#1e242c', fontSize:12, cursor:'pointer' };
+const btnPrimary = { ...btn, background:'#1e242c', borderColor:'#1e242c', color:'#fff' };
+const btnQuiet = { ...btn, borderColor:'transparent', background:'transparent', color:'#555' };
+
 export default function HomePage() {
   // Auth state: null = loading; me.status routes between login/enroll/app screens
   const [me, setMe] = useState(null);
@@ -206,8 +211,8 @@ export default function HomePage() {
         <form onSubmit={enroll}>
           <input value={joinCode} onChange={e=>setJoinCode(e.target.value.toUpperCase())} placeholder="XXXX-XXXX" style={{padding:'10px', fontSize:16, fontFamily:'monospace', textAlign:'center', border:'1px solid #ccc', borderRadius:6, width:160}}/>
           <div style={{marginTop:12}}>
-            <button type="submit" style={{padding:'8px 16px'}}>Join</button>
-            <button type="button" onClick={signOut} style={{marginLeft:8, fontSize:12}}>Sign out</button>
+            <button type="submit" style={btnPrimary}>Join</button>
+            <button type="button" onClick={signOut} style={{...btnQuiet, marginLeft:8}}>Sign out</button>
           </div>
         </form>
         {joinError && <p style={{color:'red', fontSize:13}}>{joinError === 'invalid_code' ? 'That code is not valid.' : joinError === 'expired' ? 'That workshop has ended.' : joinError}</p>}
@@ -222,7 +227,7 @@ export default function HomePage() {
       <div style={gateWrap}><div style={gateCard}>
         <h2 style={{marginTop:0}}>No access</h2>
         <p style={{fontSize:14}}>{msg}</p>
-        <button onClick={signOut} style={{fontSize:12}}>Sign out</button>
+        <button onClick={signOut} style={btnQuiet}>Sign out</button>
       </div></div>
     );
   }
@@ -237,7 +242,7 @@ export default function HomePage() {
           <div style={{fontSize:11, opacity:0.55}}>independent answers · anonymous peer review · chairman synthesis</div>
         </div>
         <div style={{flex:1}}/>
-        <button onClick={toggleGuide} title="Show or hide the guide" style={{fontSize:12, padding:'4px 10px', border:'1px solid #ccc', borderRadius:16, background: showGuide ? '#eef2f6' : '#fff', cursor:'pointer'}}>? Guide</button>
+        <button onClick={toggleGuide} style={btn}>{showGuide ? 'Hide guide' : 'Show guide'}</button>
         {me.auth_enabled && (
           <div style={{display:'flex', alignItems:'center', gap:8}}>
             {me.group && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #cfd8e0', borderRadius:16, background:'#f2f5f8'}} title={me.group.valid_until ? `access until ${new Date(me.group.valid_until).toLocaleString()}` : undefined}>{me.group.name}</span>}
@@ -249,7 +254,7 @@ export default function HomePage() {
             {me.admin && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #1e242c', borderRadius:16, background:'#1e242c', color:'#fff'}}>admin</span>}
             <span style={{fontSize:13, fontWeight:600}}>{me.name || me.email}</span>
             {me.admin && <a href="/admin" style={{fontSize:12}}>Admin</a>}
-            <button onClick={signOut} style={{fontSize:11, cursor:'pointer'}}>Sign out</button>
+            <button onClick={signOut} style={btnQuiet}>Sign out</button>
           </div>
         )}
       </header>
@@ -272,7 +277,6 @@ export default function HomePage() {
             <strong>4 · Change a seat's model</strong><br/>
             Click the seat pill and pick from the list{me.group?.models?.length ? ' (your group limits the catalog)' : ''}. Then ask a question — every seat answers, they rank each other anonymously, the chairman concludes.
           </div>
-          <button onClick={toggleGuide} title="Hide guide" style={{border:'none', background:'none', cursor:'pointer', fontSize:14, opacity:0.5, padding:0}}>×</button>
         </div>
       )}
       <div style={{ display:'flex', flex:1, minHeight:0 }}>
@@ -280,16 +284,20 @@ export default function HomePage() {
       <div style={{ width:260, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fcfcfc' }}>
         <h3 style={{margin:'0 0 2px'}}>Conversations</h3>
         <div style={{fontSize:11, opacity:0.6, marginBottom:10}}>your sessions with the council</div>
-        <button onClick={() => createConversation(selectedModelsForNew)} style={{marginBottom:12}}>+ New Conversation</button>
+        <button onClick={() => createConversation(selectedModelsForNew)} style={{...btnPrimary, marginBottom:12, width:'100%'}}>+ New Conversation</button>
         {offline && <div style={{color:'#b36b00', fontSize:12, marginBottom:8}}>API unreachable. Retrying...</div>}
         {error && <div style={{color:'red', fontSize:12, marginBottom:8}}>Error: {error}</div>}
         <ul style={{listStyle:'none', padding:0, margin:0}}>
           {conversations.map(c => (
             <li key={c.id} style={{marginBottom:8}}>
-              <button style={{width:'100%', textAlign:'left', fontSize:13}} onClick={async () => {
+              <button style={{
+                ...btn,
+                width:'100%', textAlign:'left', fontSize:13, padding:'7px 10px',
+                ...(currentConversation?.id === c.id ? { borderColor:'#1e242c', background:'#eef2f6', fontWeight:600 } : {})
+              }} onClick={async () => {
                 const r = await fetch(`/api/conversations/${c.id}`);
                 if(r.ok){ const data = await r.json(); const conv = data.conversation; setCurrentConversation(conv); setTempModels(conv?.models || []); setEditingModels(false); }
-              }}>{c.title || 'Untitled'} <span style={{opacity:0.6}}>({c.message_count})</span></button>
+              }}>{c.title || 'Untitled'} <span style={{opacity:0.6, fontWeight:400}}>({c.message_count})</span></button>
             </li>
           ))}
         </ul>
@@ -313,11 +321,11 @@ export default function HomePage() {
                 <div style={{flex:1}}/>
                 {editingModels ? (
                   <span>
-                    <button onClick={saveModels} style={{marginRight:6, fontSize:12}}>Save</button>
-                    <button onClick={() => { setEditingModels(false); setTempModels(currentConversation.models || []); }} style={{fontSize:12}}>Cancel</button>
+                    <button onClick={saveModels} style={{...btnPrimary, marginRight:6}}>Save</button>
+                    <button onClick={() => { setEditingModels(false); setTempModels(currentConversation.models || []); }} style={btnQuiet}>Cancel</button>
                   </span>
                 ) : (
-                  <button onClick={() => { setEditingModels(true); setTempModels(currentConversation.models || []); }} style={{fontSize:12}}>Edit Seats</button>
+                  <button onClick={() => { setEditingModels(true); setTempModels(currentConversation.models || []); }} style={btn}>Edit Seats</button>
                 )}
               </div>
               <ModelRing
@@ -355,7 +363,7 @@ export default function HomePage() {
             <div style={{padding:16, borderTop:'1px solid #ddd', background:'#fff'}}>
               <form onSubmit={e => { e.preventDefault(); const v = e.target.prompt.value.trim(); if(v) sendMessage(v); e.target.reset(); }}>
                 <input name="prompt" style={{width:'70%', padding:'8px', border:'1px solid #ccc', borderRadius:4}} placeholder="Ask the council" />
-                <button type="submit" disabled={loading} style={{marginLeft:8, padding:'8px 14px'}}>{loading? 'Thinking...' : 'Send'}</button>
+                <button type="submit" disabled={loading} style={{...btnPrimary, marginLeft:8, padding:'8px 18px', opacity: loading ? 0.6 : 1, cursor: loading ? 'default' : 'pointer'}}>{loading? 'Deliberating…' : 'Send'}</button>
               </form>
             </div>
           </>
@@ -364,9 +372,11 @@ export default function HomePage() {
             <h3 style={{margin:'0 0 6px'}}>Welcome{firstName ? `, ${firstName}` : ''}.</h3>
             <p style={{fontSize:13, margin:'0 0 14px', opacity:0.8}}>
               Convene a council: check the seats in the Conversationalists panel, then start a conversation.
-              Not sure what anything means? Open the <button onClick={toggleGuide} style={{border:'none', background:'none', padding:0, cursor:'pointer', textDecoration:'underline', fontSize:13}}>guide</button>.
+              Not sure what anything means? {showGuide ? 'See the guide above.' : (
+                <>Use <button onClick={toggleGuide} style={{...btnQuiet, padding:0, textDecoration:'underline', fontSize:13}}>Show guide</button> in the header.</>
+              )}
             </p>
-            <button onClick={() => createConversation(selectedModelsForNew)} style={{padding:'8px 16px'}}>+ New Conversation</button>
+            <button onClick={() => createConversation(selectedModelsForNew)} style={{...btnPrimary, padding:'8px 16px'}}>+ New Conversation</button>
             {conversations.length > 0 && <p style={{fontSize:12, opacity:0.6, marginTop:12}}>…or pick a previous conversation from the left.</p>}
           </div>
         )}

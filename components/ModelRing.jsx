@@ -59,25 +59,30 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
             type="button"
             onClick={() => editable && setOpenIndex(openIndex === i ? null : i)}
             style={{
-              padding:'6px 12px',
-              border:'1px solid #777',
-              borderRadius:24,
-              background: editable ? '#f9f9f9' : '#fafafa',
+              padding:'5px 12px',
+              border:'1px solid #c9d1d9',
+              borderRadius:6,
+              background: editable ? '#fff' : '#f7f9fb',
+              color:'#1e242c',
               cursor: editable ? 'pointer' : 'default',
               fontSize:12,
-              maxWidth:150,
+              maxWidth:170,
               display:'flex',
               alignItems:'center',
               gap:6
             }}
             title={m}
           >
-            {showSeatNumbers && <span style={{
+            {showSeatNumbers && <span title={i === 0 ? 'Seat 1 — chairman' : `Seat ${i+1}`} style={{
               display:'inline-block',
-              minWidth:18,
+              minWidth:16,
               textAlign:'center',
-              fontWeight:'600',
-              color:'#444'
+              fontWeight:600,
+              fontSize:11,
+              color: i === 0 ? '#fff' : '#555',
+              background: i === 0 ? '#1e242c' : '#eef2f6',
+              borderRadius:4,
+              padding:'1px 4px'
             }}>{i+1}</span>}
             <span style={{overflow:'hidden', textOverflow:'ellipsis'}}>{m ? m.replace(/^[^/]+\//,'') : 'Empty'}</span>
           </button>
@@ -88,9 +93,9 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
               onClick={() => removeSeat(i)}
               style={{
                 position:'absolute', top:-6, right:-6,
-                width:18, height:18, lineHeight:'18px',
-                background:'#fff', border:'1px solid #bbb', borderRadius:'50%',
-                cursor:'pointer', fontSize:10, fontWeight:'bold'
+                width:18, height:18, lineHeight:'16px', padding:0,
+                background:'#fff', border:'1px solid #c9d1d9', borderRadius:'50%',
+                color:'#555', cursor:'pointer', fontSize:11, fontWeight:'bold'
               }}>×</button>
           )}
           {editable && openIndex === i && (
@@ -117,7 +122,7 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
         </div>
       ))}
       {editable && seats.length < max && (
-        <button type="button" onClick={addSeat} style={{ padding:'6px 12px', border:'1px dashed #999', borderRadius:24, background:'#fff', fontSize:12 }}>+ Add Seat</button>
+        <button type="button" onClick={addSeat} style={{ padding:'5px 12px', border:'1px dashed #a9b4bf', borderRadius:6, background:'#fff', color:'#555', fontSize:12, cursor:'pointer' }}>+ Add Seat</button>
       )}
       {editable && (
         <div style={{width:'100%', fontSize:11, color:'#555', marginTop:4}}>Seats: {seats.length} / {max}</div>
