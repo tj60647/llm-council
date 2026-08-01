@@ -266,7 +266,7 @@ export default function HomePage() {
           </div>
           <div style={{flex:1, minWidth:0}}>
             <strong>3 · Add / remove a seat</strong><br/>
-            In the Conversationalists panel, click <em>+ Add Seat</em> (up to 7) or the <em>×</em> on a seat. For an existing conversation, hit <em>Edit Seats</em> first, then Save.
+            Left panel: <em>+ Add Seat</em> (up to 7) or <em>×</em> sets the seats for <em>new</em> conversations. For the current one, use <em>Edit Seats</em> at the top of the chat, then Save.
           </div>
           <div style={{flex:1, minWidth:0}}>
             <strong>4 · Change a seat's model</strong><br/>
@@ -297,37 +297,36 @@ export default function HomePage() {
       {/* Conversationalists Panel */}
       <div style={{ width:300, borderRight:'1px solid #ddd', padding:16, overflowY:'auto', background:'#fff' }}>
         <h3 style={{margin:'0 0 2px'}}>Conversationalists</h3>
-        <div style={{fontSize:11, opacity:0.6, marginBottom:8}}>the seats — one model each, seat 1 chairs</div>
-        <h4 style={{margin:'8px 0 4px'}}>Default Seats (New)</h4>
+        <div style={{fontSize:11, opacity:0.6, marginBottom:8}}>default seats for new conversations — seat 1 chairs</div>
         <ModelRing value={selectedModelsForNew} onChange={setSelectedModelsForNew} editable={true} showSeatNumbers={true} />
-        <div style={{marginTop:20}}>
-          <h4 style={{margin:'8px 0 4px'}}>This Conversation</h4>
-          {currentConversation ? (
-            <>
+        <div style={{fontSize:11, opacity:0.55, marginTop:14}}>The active conversation's seats appear at the top of the chat panel.</div>
+      </div>
+      {/* Messages Panel */}
+      <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#fafafa' }}>
+        {currentConversation ? (
+          <>
+            {/* This conversation: title + seats */}
+            <div style={{padding:'10px 16px', borderBottom:'1px solid #e5e5e5', background:'#fff'}}>
+              <div style={{display:'flex', alignItems:'baseline', gap:10, marginBottom:8}}>
+                <strong style={{fontSize:14}}>{currentConversation.title || 'Untitled'}</strong>
+                <span style={{fontSize:11, opacity:0.55}}>this conversation's seats</span>
+                <div style={{flex:1}}/>
+                {editingModels ? (
+                  <span>
+                    <button onClick={saveModels} style={{marginRight:6, fontSize:12}}>Save</button>
+                    <button onClick={() => { setEditingModels(false); setTempModels(currentConversation.models || []); }} style={{fontSize:12}}>Cancel</button>
+                  </span>
+                ) : (
+                  <button onClick={() => { setEditingModels(true); setTempModels(currentConversation.models || []); }} style={{fontSize:12}}>Edit Seats</button>
+                )}
+              </div>
               <ModelRing
                 value={editingModels ? tempModels : (currentConversation.models || [])}
                 onChange={setTempModels}
                 editable={editingModels}
                 showSeatNumbers={true}
               />
-              {editingModels ? (
-                <div style={{marginTop:8}}>
-                  <button onClick={saveModels} style={{marginRight:8}}>Save</button>
-                  <button onClick={() => { setEditingModels(false); setTempModels(currentConversation.models || []); }} style={{fontSize:12}}>Cancel</button>
-                </div>
-              ) : (
-                <button onClick={() => { setEditingModels(true); setTempModels(currentConversation.models || []); }} style={{fontSize:12, marginTop:8}}>Edit Seats</button>
-              )}
-            </>
-          ) : (
-            <div style={{fontSize:12, opacity:0.7}}>Select a conversation to view its seats.</div>
-          )}
-        </div>
-      </div>
-      {/* Messages Panel */}
-      <div style={{ flex:1, display:'flex', flexDirection:'column', background:'#fafafa' }}>
-        {currentConversation ? (
-          <>
+            </div>
             <div style={{flex:1, overflowY:'auto', padding:16}}>
               {currentConversation.messages.length === 0 && (
                 <div style={{background:'#f7f9fb', border:'1px solid #e2e8f0', borderRadius:8, padding:'18px 20px', maxWidth:640}}>
