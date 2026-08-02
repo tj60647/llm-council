@@ -1,7 +1,10 @@
 "use client";
 import { useMemo } from 'react';
 import { sankey, sankeyLinkHorizontal } from 'd3-sankey';
-import { seatStyle, shortModelName } from '../lib/ui/seats.js';
+import {
+  seatStyle, shortModelName,
+  CHAIR_MARK, CHAIR_BORDER, MEMBER_MARK, MEMBER_BORDER, STRUCTURE_MARK, STRUCTURE_BORDER
+} from '../lib/ui/seats.js';
 
 // Structural view: who reads whom. Seats are labeled by number (matching the
 // seat pills) because model names cannot fit in a 400px panel.
@@ -101,10 +104,12 @@ export default function SankeyCouncil({ conversation }) {
           const isSeat = Boolean(s);
           return (
             <g key={i}>
-              {/* Structural nodes stay recessive — the column captions already
-                  name them, so seats keep the visual weight and the labels. */}
+              {/* Three readable levels: chairperson (dark) → member (mid) →
+                  structure (empty outline). Structural nodes carry no label —
+                  the column captions already name them. */}
               <rect x={n.x0} y={n.y0} width={n.x1 - n.x0} height={Math.max(3, n.y1 - n.y0)} rx={3}
-                fill={isSeat ? s.fill : '#dfe4e9'} stroke={isSeat ? s.border : '#cbd3da'} />
+                fill={isSeat ? s.mark : STRUCTURE_MARK}
+                stroke={isSeat ? (n.seat === 0 ? CHAIR_BORDER : MEMBER_BORDER) : STRUCTURE_BORDER} />
               <title>{isSeat ? `Seat ${n.seat + 1}: ${shortModelName(n.model)}` : n.name}</title>
               {isSeat && (
                 <text x={n.x1 + 3} y={(n.y0 + n.y1) / 2} fontSize={8.5} fill={INK_2} dominantBaseline="middle">{n.name}</text>
@@ -113,7 +118,10 @@ export default function SankeyCouncil({ conversation }) {
           );
         })}
       </svg>
-      <div style={{display:'flex', gap:14, marginTop:6, fontSize:10.5, color:INK_2}}>
+      <div style={{display:'flex', flexWrap:'wrap', gap:'4px 12px', marginTop:6, fontSize:10.5, color:INK_2}}>
+        <LegendNode fill={CHAIR_MARK} border={CHAIR_BORDER} label="chairperson"/>
+        <LegendNode fill={MEMBER_MARK} border={MEMBER_BORDER} label="member"/>
+        <LegendNode fill={STRUCTURE_MARK} border={STRUCTURE_BORDER} label="stage"/>
         <span style={{display:'flex', alignItems:'center', gap:5}}>
           <span style={{width:14, height:3, background:DONE, borderRadius:2}}/> done
         </span>
@@ -122,5 +130,13 @@ export default function SankeyCouncil({ conversation }) {
         </span>
       </div>
     </figure>
+  );
+}
+
+function LegendNode({ fill, border, label }) {
+  return (
+    <span style={{display:'flex', alignItems:'center', gap:5}}>
+      <span style={{width:7, height:12, background:fill, border:`1px solid ${border}`, borderRadius:2}}/> {label}
+    </span>
   );
 }
