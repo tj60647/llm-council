@@ -1,5 +1,5 @@
 "use client";
-import { useEffect } from 'react';
+import Modal from './Modal.jsx';
 import { promptsForSeat } from '../lib/council/prompts.js';
 import { seatStyle, shortModelName } from '../lib/ui/seats.js';
 
@@ -14,12 +14,6 @@ const row = { display:'flex', gap:10, padding:'5px 0', borderBottom:'1px solid #
 const label = { width:120, flexShrink:0, color:'#52514e' };
 
 export default function SeatModal({ seatIndex, modelId, meta, onClose }) {
-  useEffect(() => {
-    const onKey = (e) => { if (e.key === 'Escape') onClose(); };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [onClose]);
-
   const style = seatStyle(seatIndex);
   const isChair = seatIndex === 0;
   const ctx = meta?.context_length ? `${Number(meta.context_length).toLocaleString()} tokens` : null;
@@ -27,41 +21,19 @@ export default function SeatModal({ seatIndex, modelId, meta, onClose }) {
   const outPrice = pricePerMillion(meta?.pricing?.completion);
 
   return (
-    <div
-      onClick={onClose}
-      style={{
-        position:'fixed', inset:0, background:'rgba(11,11,11,0.45)', zIndex:100,
-        display:'flex', alignItems:'center', justifyContent:'center', padding:20
-      }}
+    <Modal
+      title={shortModelName(modelId) || 'Empty seat'}
+      subtitle={`Seat ${seatIndex + 1} · ${isChair ? 'chairperson — writes the final synthesis' : 'council member'}`}
+      badge={
+        <span style={{
+          width:26, height:26, borderRadius:'50%', background:style.fill, border:`1px solid ${style.border}`,
+          display:'inline-flex', alignItems:'center', justifyContent:'center',
+          fontSize:12, fontWeight:700, color:'#1e242c', flexShrink:0
+        }}>{seatIndex + 1}</span>
+      }
+      onClose={onClose}
     >
-      <div
-        onClick={e => e.stopPropagation()}
-        role="dialog"
-        aria-modal="true"
-        aria-label={`Seat ${seatIndex + 1} details`}
-        style={{
-          background:'#fff', borderRadius:10, width:'min(680px, 100%)', maxHeight:'85vh',
-          overflowY:'auto', boxShadow:'0 12px 40px rgba(0,0,0,0.25)'
-        }}
-      >
-        {/* Header */}
-        <div style={{display:'flex', alignItems:'center', gap:10, padding:'14px 18px', borderBottom:'1px solid #e2e8f0'}}>
-          <span style={{
-            width:26, height:26, borderRadius:'50%', background:style.fill, border:`1px solid ${style.border}`,
-            display:'inline-flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:700, color:'#1e242c'
-          }}>{seatIndex + 1}</span>
-          <div style={{flex:1, minWidth:0}}>
-            <div style={{fontWeight:600, fontSize:15}}>{shortModelName(modelId) || 'Empty seat'}</div>
-            <div style={{fontSize:11, color:'#52514e'}}>
-              Seat {seatIndex + 1} · {isChair ? 'chairperson — writes the final synthesis' : 'council member'}
-            </div>
-          </div>
-          <button onClick={onClose} aria-label="Close" style={{
-            border:'1px solid #c9d1d9', background:'#fff', borderRadius:6,
-            width:28, height:28, cursor:'pointer', fontSize:15, lineHeight:1, color:'#1e242c'
-          }}>×</button>
-        </div>
-
+      <div>
         {/* Model metadata */}
         <div style={{padding:'12px 18px'}}>
           <h4 style={{margin:'0 0 6px', fontSize:13}}>Model</h4>
@@ -110,6 +82,6 @@ export default function SeatModal({ seatIndex, modelId, meta, onClose }) {
           ))}
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }

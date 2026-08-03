@@ -4,12 +4,21 @@ import SankeyCouncil from '../components/SankeyCouncil';
 import CouncilFlow from '../components/CouncilFlow';
 import CouncilMessage from '../components/CouncilMessage';
 import ModelRing from '../components/ModelRing';
+import AboutModal from '../components/AboutModal';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 
 // Shared button styles — every button on the page uses one of these three
-const btn = { padding:'5px 12px', border:'1px solid #c9d1d9', borderRadius:6, background:'#fff', color:'#1e242c', fontSize:12, cursor:'pointer' };
+// lineHeight is explicit so <button> and <a> compute to the same box height
+const btn = { padding:'5px 12px', border:'1px solid #c9d1d9', borderRadius:6, background:'#fff', color:'#1e242c', fontSize:12, lineHeight:'16px', cursor:'pointer' };
 const btnPrimary = { ...btn, background:'#1e242c', borderColor:'#1e242c', color:'#fff' };
 const btnQuiet = { ...btn, borderColor:'transparent', background:'transparent', color:'#555' };
+// Anchors that act as buttons must opt out of link styling to match them
+const btnLink = { ...btn, textDecoration:'none', display:'inline-flex', alignItems:'center' };
+// Status, not a control: badges never look clickable
+const badge = {
+  fontSize:11, padding:'3px 9px', borderRadius:16, whiteSpace:'nowrap',
+  border:'1px solid #cfd8e0', background:'#f2f5f8', color:'#52514e'
+};
 
 // Panel widths are shared with the guide strip so each guide column sits
 // directly above the panel it explains. Order = the workflow:
@@ -65,6 +74,7 @@ export default function HomePage() {
     window.location.reload();
   }
 
+  const [showAbout, setShowAbout] = useState(false);
   // Guide strip: visible until dismissed; reopen via the header "Guide" button
   const [showGuide, setShowGuide] = useState(true);
   useEffect(() => {
@@ -260,7 +270,11 @@ export default function HomePage() {
         <p style={{fontSize:14}}>Sign in to convene the council.</p>
         {authError && <p style={{color:'red', fontSize:13}}>Sign-in failed ({authError}). Try again.</p>}
         <a href="/api/auth/login" style={{display:'inline-block', padding:'10px 18px', background:'#24292f', color:'#fff', borderRadius:6, textDecoration:'none', fontSize:14}}>Sign in with GitHub</a>
+        <div style={{marginTop:14}}>
+          <button onClick={() => setShowAbout(true)} style={btn}>About</button>
+        </div>
         <p style={{fontSize:11, opacity:0.55, marginTop:16, marginBottom:0}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></p>
+        {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       </div></div>
     );
   }
@@ -303,22 +317,37 @@ export default function HomePage() {
           <div style={{fontSize:11, opacity:0.55}}>independent answers · anonymous peer review · chairperson synthesis</div>
         </div>
         <div style={{flex:1}}/>
-        <button onClick={toggleGuide} style={btn}>{showGuide ? 'Hide guide' : 'Show guide'}</button>
+        {/* Status: who you are and what your access allows */}
         {me.auth_enabled && (
-          <div style={{display:'flex', alignItems:'center', gap:8}}>
-            {me.group && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #cfd8e0', borderRadius:16, background:'#f2f5f8'}} title={me.group.valid_until ? `access until ${new Date(me.group.valid_until).toLocaleString()}` : undefined}>{me.group.name}</span>}
-            {me.group?.runs_per_day > 0 && (
-              <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #e4d3ac', borderRadius:16, background:'#fbf5e6'}} title="Council runs remaining today">
-                {Math.max(0, me.group.runs_per_day - (me.runs_today || 0))}/{me.group.runs_per_day} runs
+          <div style={{display:'flex', alignItems:'center', gap:7}}>
+            {me.group && (
+              <span style={badge} title={me.group.valid_until ? `access until ${new Date(me.group.valid_until).toLocaleString()}` : undefined}>
+                {me.group.name}
               </span>
             )}
-            {me.admin && <span style={{fontSize:11, padding:'3px 10px', border:'1px solid #1e242c', borderRadius:16, background:'#1e242c', color:'#fff'}}>admin</span>}
-            <span style={{fontSize:13, fontWeight:600}}>{me.name || me.email}</span>
-            {me.admin && <a href="/admin" style={{fontSize:12}}>Admin</a>}
-            <button onClick={signOut} style={btnQuiet}>Sign out</button>
+            {me.group?.runs_per_day > 0 && (() => {
+              const left = Math.max(0, me.group.runs_per_day - (me.runs_today || 0));
+              const low = left <= 2;
+              return (
+                <span
+                  style={low ? { ...badge, border:'1px solid #e4d3ac', background:'#fbf5e6', color:'#7a5b16' } : badge}
+                  title="Council runs remaining today"
+                >{left}/{me.group.runs_per_day} runs</span>
+              );
+            })()}
+            {me.admin && <span style={{ ...badge, borderColor:'#1e242c', background:'#fff', color:'#1e242c' }}>admin</span>}
+            <span style={{fontSize:13, fontWeight:600, marginLeft:2}}>{me.name || me.email}</span>
           </div>
         )}
+        {/* Actions: one shape for every control */}
+        <div style={{display:'flex', alignItems:'center', gap:7}}>
+          <button onClick={toggleGuide} style={btn}>{showGuide ? 'Hide guide' : 'Show guide'}</button>
+          <button onClick={() => setShowAbout(true)} style={btn}>About</button>
+          {me.admin && <a href="/admin" style={btnLink}>Admin</a>}
+          {me.auth_enabled && <button onClick={signOut} style={btn}>Sign out</button>}
+        </div>
       </header>
+      {showAbout && <AboutModal onClose={() => setShowAbout(false)} />}
       {/* Guide strip — columns sit directly above the panel each one describes */}
       {showGuide && (
         <div style={{display:'flex', alignItems:'stretch', borderBottom:'1px solid #e6eaee', background:'#f7f9fb', fontSize:12, lineHeight:'17px'}}>
@@ -452,6 +481,7 @@ export default function HomePage() {
       <footer style={{display:'flex', alignItems:'center', gap:14, padding:'7px 20px', borderTop:'1px solid #ddd', background:'#fff', fontSize:11, color:'#555'}}>
         <span style={{fontWeight:600}}>LLM Council — Reconvened</span>
         <span style={{opacity:0.75}}>derived from <a href="https://github.com/karpathy/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>karpathy/llm-council</a></span>
+        <button onClick={() => setShowAbout(true)} style={{...btnQuiet, fontSize:11, padding:0, textDecoration:'underline'}}>about</button>
         <div style={{flex:1}}/>
         <a href="https://github.com/tj60647/llm-council" target="_blank" rel="noreferrer" style={{color:'inherit'}}>source</a>
         {me.admin && <a href="/admin" style={{color:'inherit'}}>admin</a>}
