@@ -60,16 +60,25 @@ export default function ModelPicker({
   const [q, setQ] = useState('');
   const [sort, setSort] = useState('relevance');
   const [provider, setProvider] = useState('');
+  const [showRetired, setShowRetired] = useState(false);
+
+  // Retired ids still answer HTTP but return nothing useful, so they are out of
+  // the list unless a seat already points at one or you ask to see them.
+  const live = useMemo(
+    () => models.filter(m => m.available !== false || showRetired || selected.includes(m.id)),
+    [models, showRetired, selected]
+  );
+  const retiredCount = useMemo(() => models.filter(m => m.available === false).length, [models]);
 
   const providers = useMemo(() => {
     const counts = new Map();
-    for (const m of models) counts.set(m.provider, (counts.get(m.provider) || 0) + 1);
+    for (const m of live) counts.set(m.provider, (counts.get(m.provider) || 0) + 1);
     return [...counts.entries()].sort((a, b) => b[1] - a[1]).slice(0, 8);
-  }, [models]);
+  }, [live]);
 
   const rows = useMemo(() => {
     const query = q.trim().toLowerCase();
-    let out = models;
+    let out = live;
     if (provider) out = out.filter(m => m.provider === provider);
     if (query) {
       out = out.map(m => ({ m, s: score(m, query) })).filter(x => x.s > 0)
@@ -79,7 +88,7 @@ export default function ModelPicker({
       out = [...out].sort(SORTS[sort].fn || SORTS.newest.fn);
     }
     return out;
-  }, [models, q, sort, provider]);
+  }, [live, q, sort, provider]);
 
   const isSelected = (id) => selected.includes(id);
 
@@ -152,6 +161,12 @@ export default function ModelPicker({
                   overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap'
                 }}>{m.id}</span>
                 <span style={{display:'flex', gap:4, flexWrap:'wrap', marginTop:3}}>
+                  {m.available === false && (
+                    <span style={{...chip, borderColor:'#e6c3c3', background:'#fdf3f3', color:'#b02a2a'}}
+                      title={m.retired_at ? `Retired ${new Date(m.retired_at).toLocaleDateString()}` : 'No longer available'}>
+                      retired
+                    </span>
+                  )}
                   {ctx && <span style={chip}>{ctx}</span>}
                   {price && <span style={chip}>{price}</span>}
                   {m.caps?.vision && <span style={chip}>vision</span>}
@@ -164,9 +179,17 @@ export default function ModelPicker({
         })}
       </div>
 
-      <div style={{padding:'5px 9px', borderTop:'1px solid #eef2f6', fontSize:10.5, color:MUTED}}>
-        {rows.length} of {models.length} models
-        {mode === 'multi' && selected.length > 0 && ` · ${selected.length} selected`}
+      <div style={{padding:'5px 9px', borderTop:'1px solid #eef2f6', fontSize:10.5, color:MUTED, display:'flex', gap:8, alignItems:'center', flexWrap:'wrap'}}>
+        <span>
+          {rows.length} of {live.length} models
+          {mode === 'multi' && selected.length > 0 && ` · ${selected.length} selected`}
+        </span>
+        {retiredCount > 0 && (
+          <button type="button" onClick={() => setShowRetired(s => !s)}
+            style={{border:'none', background:'none', padding:0, cursor:'pointer', color:MUTED, textDecoration:'underline', fontSize:10.5}}>
+            {showRetired ? 'hide' : 'show'} {retiredCount} retired
+          </button>
+        )}
       </div>
     </div>
   );

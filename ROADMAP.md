@@ -94,9 +94,11 @@ conversation isolation, and an `/admin` page (groups, members, usage, revoke).
 
 ## Phase B: Robustness (next up)
 
-- Model validity guard: on conversation create, validate seat IDs against the
-  cached catalog; surface dead seats in the UI instead of silent nulls.
-  (Models retire constantly — this is what actually rotted first.)
+- [x] **Model validity guard (done 2026-08-04).** Catalog now comes from the
+      OpenRouter Registry, which keeps retired models flagged rather than
+      dropping them. Seats pointing at retired or unlisted ids render red with
+      a warning before a run; the picker hides retired models behind a toggle.
+      This is the failure that broke the deployment in February.
 - SSE client parser: buffer partial events across chunk boundaries.
 - Per-stage error surfaces in UI (model X failed vs whole-run failure).
 - Heartbeat/keepalive event every ~15s so proxies don't kill idle streams

@@ -17,6 +17,11 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
   const [openIndex, setOpenIndex] = useState(null);
   const [inspecting, setInspecting] = useState(null); // seat index whose details are open
   const seats = (value && value.length ? value : DEFAULT_COUNCIL_MODELS).slice(0, max);
+  const deadSeats = available.length === 0 ? [] : seats.reduce((acc, id, i) => {
+    const entry = available.find(a => a.id === id);
+    if (id && (!entry || entry.available === false)) acc.push(i);
+    return acc;
+  }, []);
 
   useEffect(() => {
     async function load() {
@@ -60,19 +65,27 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
     <div style={{display:'flex', flexWrap:'wrap', gap:'14px 10px', alignItems:'flex-start'}}>
       {seats.map((m, i) => {
         const s = seatStyle(i);
+        // A retired or unlisted id answers with nothing — flag it on the seat
+        // rather than letting the run come back empty.
+        const entry = available.find(a => a.id === m);
+        const dead = Boolean(m) && available.length > 0 && (!entry || entry.available === false);
+        const deadWhy = !entry ? 'not in the catalog' : 'retired upstream';
         return (
         <div key={i} style={{ position:'relative' }}>
           <div
-            title={`Seat ${i+1}${i === 0 ? ' — chairperson' : ''}: ${m || 'empty'}`}
+            title={dead
+              ? `Seat ${i+1}: ${m} — ${deadWhy}. This seat will return an empty answer; pick another model.`
+              : `Seat ${i+1}${i === 0 ? ' — chairperson' : ''}: ${m || 'empty'}`}
             style={{
               display:'flex', alignItems:'center', gap:6,
               padding:'4px 6px 4px 5px',
-              border:`1px solid ${s.border}`,
+              border:`1px solid ${dead ? '#d08a8a' : s.border}`,
               borderRadius:7,
-              background: s.fill,
+              background: dead ? '#fdf3f3' : s.fill,
               maxWidth:260
             }}
           >
+            {dead && <span aria-hidden="true" style={{fontSize:11, color:'#b02a2a'}}>⚠</span>}
             {showSeatNumbers && (
               <span style={{
                 display:'inline-flex', alignItems:'center', justifyContent:'center',
@@ -153,6 +166,13 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
       {editable && (
         <div style={{width:'100%', fontSize:11, color:'#52514e', marginTop:2}}>
           Seats: {seats.length} / {max} · seat 1 chairs
+        </div>
+      )}
+      {deadSeats.length > 0 && (
+        <div style={{width:'100%', fontSize:11, color:'#b02a2a', marginTop:2}}>
+          {deadSeats.length === 1 ? 'Seat' : 'Seats'} {deadSeats.map(i => i + 1).join(', ')} point at
+          {deadSeats.length === 1 ? ' a model that is' : ' models that are'} no longer available — those seats will
+          come back empty. {editable ? 'Click to pick a replacement.' : 'Use Edit Seats to replace.'}
         </div>
       )}
       {inspecting !== null && (

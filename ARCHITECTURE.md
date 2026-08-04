@@ -63,6 +63,26 @@ Adapter selection (`lib/storage/index.js`): `STORAGE_ADAPTER` env wins (`memory`
   - Gradient Green→Orange: Ranking quality (lower average → greener)
 - Future: Legend + tooltips + per-link latency overlay.
 
+## Model Catalog
+
+`lib/openrouter/registry.js` fetches the catalog from the **OpenRouter Registry**
+(`MODEL_REGISTRY_URL`, default `https://openrouter-registry.aroughidea.com`), a
+synced mirror that retains retired models with `isAvailable: false` and a
+`retiredAt` date. OpenRouter's own `/api/v1/models` lists only live models, so a
+seat pointing at a retired id is indistinguishable from a typo — it simply
+returns nothing, which is how this app broke in early 2026.
+
+- Paged at the registry's 500-record maximum; a short page or reaching the
+  reported total ends the loop, and hitting the page cap logs rather than
+  silently truncating.
+- Registry prices are per 1K tokens and are converted to the per-token figures
+  the UI formatter expects.
+- Falls back to OpenRouter direct if the registry is unreachable; the response
+  reports `source` so the degradation is visible.
+- `checkModelIds()` separates **retired** from **unknown** ids. The UI marks
+  affected seats in red with a warning, and the picker hides retired models
+  behind a "show N retired" toggle.
+
 ## Access Control (optional)
 
 Feature-flagged on the presence of `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` +

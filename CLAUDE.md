@@ -90,6 +90,7 @@ STORAGE_ADAPTER=memory             # Optional override: 'memory' | 'redis'. Unse
 # UPSTASH_REDIS_REST_URL= / UPSTASH_REDIS_REST_TOKEN=   # Enable Redis adapter (KV_REST_API_* names also accepted); required on Vercel
 # AUTH_GITHUB_ID= / AUTH_GITHUB_SECRET= / AUTH_SECRET=  # All three present => GitHub OAuth + groups/entitlements activate (lib/auth/); absent => open mode
 # ADMIN_EMAILS=you@example.com                          # Comma-separated; full access + /admin page
+# MODEL_REGISTRY_URL=                                   # Catalog source; defaults to the OpenRouter Registry mirror. 'off' = query OpenRouter directly (loses retirement data)
 ```
 
 **Critical:** `OPENROUTER_API_KEY` must only be accessed in server-side files (API routes, `lib/`). Never import or reference it in React components or files that could be bundled for the client.
