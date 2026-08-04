@@ -29,24 +29,29 @@ export default function AboutModal({ onClose }) {
           answers, and a chairperson writes the final answer from all of it.
         </p>
 
-        <h4 style={h}>What the original was demonstrating</h4>
+        <h4 style={h}>Why the original exists</h4>
         <p style={p}>
           Andrej Karpathy released <a href={REPO} target="_blank" rel="noreferrer" style={link}>karpathy/llm-council</a> in
-          November 2025. He built it to <em>evaluate models against each other</em> as much as to answer questions —
-          it came out of {' '}
-          <a href={READING_THREAD} target="_blank" rel="noreferrer" style={link}>reading books alongside LLMs</a> and
-          wanting to see how they differed:
+          November 2025. He built it for {' '}
+          <a href={READING_THREAD} target="_blank" rel="noreferrer" style={link}>reading books alongside LLMs</a> —
+          the book is the subject, and the council is the lens:
         </p>
         <blockquote style={quote}>
-          “This project was 99% vibe coded as a fun Saturday hack because I wanted to explore and evaluate a
-          number of LLMs side by side… It's nice and useful to see multiple responses side by side, and also
-          the cross-opinions of all LLMs on each other's outputs.”
+          “…a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side
+          <strong> in the process of reading books together with LLMs</strong>. It's nice and useful to see
+          multiple responses side by side, and also the cross-opinions of all LLMs on each other's outputs.”
         </blockquote>
+        <p style={p}>
+          So this is not a leaderboard. Asking one hard question of several models gets you several readings of
+          it, and where they diverge is usually where the passage is ambiguous, contested, or genuinely hard —
+          which, if you are reading closely, is the part worth slowing down on. The ranking exists to feed the
+          chairperson a better synthesis, not to crown a winner.
+        </p>
         <p style={p}>
           The load-bearing design choice is in stage 2. When the seats review each other, the model names are
           stripped out and replaced with “Response A, B, C…”, because — in his words — it means
-          “the LLM can't play favorites when judging their outputs.” Take the anonymity away and you are
-          measuring brand loyalty rather than answer quality.
+          “the LLM can't play favorites when judging their outputs.” Take the anonymity away and the ranking
+          measures brand loyalty rather than the answers.
         </p>
         <p style={p}>
           He was also making a point about the code itself, and it is the reason this fork exists:
