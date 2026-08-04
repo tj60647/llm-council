@@ -91,6 +91,7 @@ STORAGE_ADAPTER=memory             # Optional override: 'memory' | 'redis'. Unse
 # AUTH_GITHUB_ID= / AUTH_GITHUB_SECRET= / AUTH_SECRET=  # All three present => GitHub OAuth + groups/entitlements activate (lib/auth/); absent => open mode
 # ADMIN_EMAILS=you@example.com                          # Comma-separated; full access + /admin page
 # MODEL_REGISTRY_URL=                                   # Catalog source; defaults to the OpenRouter Registry mirror. 'off' = query OpenRouter directly (loses retirement data)
+# QRSTUDIO_API_KEY= / QRSTUDIO_URL=                     # Optional: render join QRs via QR Studio's MCP (styled + logo). Unset = rendered locally with `qrcode`
 ```
 
 **Critical:** `OPENROUTER_API_KEY` must only be accessed in server-side files (API routes, `lib/`). Never import or reference it in React components or files that could be bundled for the client.

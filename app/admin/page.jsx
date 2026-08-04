@@ -1,6 +1,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import ModelPicker from '../../components/ModelPicker.jsx';
+import JoinPresenter from '../../components/JoinPresenter.jsx';
 
 // Workshop admin: manage groups (access window, allowed models, run caps, join
 // codes) and members. Gated server-side by ADMIN_EMAILS; this page mirrors that
@@ -149,7 +150,7 @@ function GroupForm({ initial, models, modelsLoading, onSave, onCancel }) {
   );
 }
 
-function GroupCard({ g, origin, onEdit, onDelete }) {
+function GroupCard({ g, origin, onEdit, onDelete, onPresent }) {
   const state = windowState(g);
   const joinUrl = `${origin}/?join=${encodeURIComponent(g.code)}`;
   return (
@@ -169,6 +170,9 @@ function GroupCard({ g, origin, onEdit, onDelete }) {
         <code style={{fontSize:22, fontWeight:700, letterSpacing:2, color:INK}}>{g.code}</code>
         <CopyButton value={g.code} label="Copy code"/>
         <CopyButton value={joinUrl} label="Copy join link" title={joinUrl}/>
+        <button style={btnPrimary} onClick={onPresent} title="Full-screen QR and code for projecting">
+          Present ⤢
+        </button>
       </div>
 
       <div style={{display:'flex', gap:'6px 18px', flexWrap:'wrap', fontSize:12, color:INK_2}}>
@@ -198,6 +202,7 @@ export default function AdminPage() {
   const [newEmailGroup, setNewEmailGroup] = useState('');
   const [memberQuery, setMemberQuery] = useState('');
   const [origin, setOrigin] = useState('');
+  const [presenting, setPresenting] = useState(null); // join code being projected
 
   const refresh = useCallback(async () => {
     const r = await fetch('/api/admin/overview');
@@ -276,6 +281,7 @@ export default function AdminPage() {
 
   return (
     <div style={{minHeight:'100vh', background:'#fafbfc'}}>
+      {presenting && <JoinPresenter code={presenting} onClose={() => setPresenting(null)}/>}
       <header style={{display:'flex', alignItems:'center', gap:12, padding:'10px 20px', borderBottom:'1px solid #ddd', background:'#fff'}}>
         <img src="/logo.svg" alt="" width={34} height={34} style={{borderRadius:8}}/>
         <div style={{lineHeight:1.25}}>
@@ -318,7 +324,8 @@ export default function AdminPage() {
         )}
         {groups.map(g => editing === g.id
           ? <GroupForm key={g.id} initial={g} models={models} modelsLoading={modelsLoading} onSave={saveGroup} onCancel={()=>setEditing(null)}/>
-          : <GroupCard key={g.id} g={g} origin={origin} onEdit={()=>setEditing(g.id)} onDelete={()=>removeGroup(g)}/>
+          : <GroupCard key={g.id} g={g} origin={origin} onEdit={()=>setEditing(g.id)}
+              onDelete={()=>removeGroup(g)} onPresent={()=>setPresenting(g.code)}/>
         )}
         {!groups.length && editing !== 'new' && (
           <div style={{...card, color:INK_2, fontSize:12.5}}>

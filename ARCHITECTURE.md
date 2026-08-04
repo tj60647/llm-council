@@ -83,6 +83,22 @@ returns nothing, which is how this app broke in early 2026.
   affected seats in red with a warning, and the picker hides retired models
   behind a "show N retired" toggle.
 
+## Join QR Codes
+
+`lib/qr.js` renders the SVG behind `GET /api/admin/qr?code=…` (admin-gated,
+cached per join URL — a code's QR never changes). Encodes `/?join=CODE`, which
+prefills the enrolment box, and uses error-correction level H so it survives
+being photographed off a projector.
+
+Rendered **locally** by default (`qrcode`), because the QR is projected during a
+live workshop and must not depend on a cold-starting external service. Set
+`QRSTUDIO_API_KEY` to render via QR Studio's MCP `generate_qr` tool instead
+(styled dots, logo overlay); that path falls back to local rendering on any
+error, and the response reports which `source` produced it.
+
+`components/JoinPresenter.jsx` is the full-screen projector view: group name,
+QR, the code at ~7vw, and the URL.
+
 ## Access Control (optional)
 
 Feature-flagged on the presence of `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` +
