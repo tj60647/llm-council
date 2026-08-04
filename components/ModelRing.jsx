@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 import { seatStyle, shortModelName } from '../lib/ui/seats.js';
 import SeatModal from './SeatModal.jsx';
+import ModelPicker from './ModelPicker.jsx';
 
 // Seat-based ring of conversationalists. Each seat holds one model id.
 // Props:
@@ -15,7 +16,6 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
   const [available, setAvailable] = useState([]);
   const [openIndex, setOpenIndex] = useState(null);
   const [inspecting, setInspecting] = useState(null); // seat index whose details are open
-  const [filter, setFilter] = useState('');
   const seats = (value && value.length ? value : DEFAULT_COUNCIL_MODELS).slice(0, max);
 
   useEffect(() => {
@@ -37,7 +37,6 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
     next[idx] = modelId;
     onChange(next.slice(0, max));
     setOpenIndex(null);
-    setFilter('');
   }
 
   function addSeat(){
@@ -56,9 +55,6 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
     if(openIndex === idx) setOpenIndex(null);
   }
 
-  const filtered = filter
-    ? available.filter(o => o.id.toLowerCase().includes(filter.toLowerCase()))
-    : available;
 
   return (
     <div style={{display:'flex', flexWrap:'wrap', gap:'14px 10px', alignItems:'flex-start'}}>
@@ -133,35 +129,17 @@ export default function ModelRing({ value, onChange, max=7, editable=false, show
             <div style={{
               position:'absolute', top:'110%', left:0, zIndex:20,
               background:'#fff', border:'1px solid #ccc', borderRadius:8,
-              width:300, maxHeight:320, display:'flex', flexDirection:'column',
+              width:340, display:'flex', flexDirection:'column',
               boxShadow:'0 4px 16px rgba(0,0,0,0.16)'
             }}>
-              <div style={{padding:8, borderBottom:'1px solid #eef2f6'}}>
-                <input
-                  autoFocus
-                  value={filter}
-                  onChange={e=>setFilter(e.target.value)}
-                  placeholder="Filter models…"
-                  style={{width:'100%', padding:'5px 8px', border:'1px solid #c9d1d9', borderRadius:6, fontSize:12}}
-                />
-              </div>
-              <div style={{overflowY:'auto'}}>
-                {available.length === 0 && <div style={{padding:10, fontSize:12}}>Loading models…</div>}
-                {available.length > 0 && filtered.length === 0 && <div style={{padding:10, fontSize:12}}>No models match.</div>}
-                {filtered.map(opt => (
-                  <button
-                    key={opt.id}
-                    type="button"
-                    onClick={() => updateSeat(i, opt.id)}
-                    style={{
-                      display:'block', width:'100%', textAlign:'left',
-                      padding:'6px 10px', border:'none', background: opt.id === m ? '#eef2f6' : '#fff',
-                      borderBottom:'1px solid #f2f5f8', cursor:'pointer', fontSize:12,
-                      fontWeight: opt.id === m ? 600 : 400
-                    }}
-                  >{opt.id}</button>
-                ))}
-              </div>
+              <ModelPicker
+                models={available}
+                loading={available.length === 0}
+                mode="single"
+                selected={m ? [m] : []}
+                onSelect={(id) => updateSeat(i, id)}
+                height={280}
+              />
             </div>
           )}
         </div>

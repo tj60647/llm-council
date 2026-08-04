@@ -5,6 +5,7 @@ import CouncilFlow from '../components/CouncilFlow';
 import CouncilMessage from '../components/CouncilMessage';
 import ModelRing from '../components/ModelRing';
 import AboutModal from '../components/AboutModal';
+import PromptBox from '../components/PromptBox';
 import { DEFAULT_COUNCIL_MODELS } from '../lib/config/models.js';
 
 // Shared button styles — every button on the page uses one of these three
@@ -253,6 +254,11 @@ export default function HomePage() {
     fetchMe().then(m => {
       if (!m.auth_enabled || m.status === 'active' || m.admin) listConversations();
     });
+    // A shared join link (/?join=CODE) prefills the code so attendees don't type it
+    try {
+      const code = new URLSearchParams(window.location.search).get('join');
+      if (code) setJoinCode(code.toUpperCase());
+    } catch {}
   }, []);
 
   const authError = typeof window !== 'undefined' ? new URLSearchParams(window.location.search).get('auth_error') : null;
@@ -447,10 +453,7 @@ export default function HomePage() {
               ))}
             </div>
             <div style={{padding:16, borderTop:'1px solid #ddd', background:'#fff'}}>
-              <form onSubmit={e => { e.preventDefault(); const v = e.target.prompt.value.trim(); if(v) sendMessage(v); e.target.reset(); }}>
-                <input name="prompt" style={{width:'70%', padding:'8px', border:'1px solid #ccc', borderRadius:4}} placeholder="Ask the council" />
-                <button type="submit" disabled={loading} style={{...btnPrimary, marginLeft:8, padding:'8px 18px', opacity: loading ? 0.6 : 1, cursor: loading ? 'default' : 'pointer'}}>{loading? 'Deliberating…' : 'Send'}</button>
-              </form>
+              <PromptBox loading={loading} onSend={sendMessage} />
             </div>
           </>
         ) : (

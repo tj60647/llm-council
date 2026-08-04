@@ -2,6 +2,7 @@
 import Modal from './Modal.jsx';
 
 const REPO = 'https://github.com/karpathy/llm-council';
+const READER3 = 'https://github.com/karpathy/reader3';
 const READING_THREAD = 'https://x.com/karpathy/status/1990577951671509438';
 const FORK = 'https://github.com/tj60647/llm-council';
 
@@ -32,9 +33,16 @@ export default function AboutModal({ onClose }) {
         <h4 style={h}>Why the original exists</h4>
         <p style={p}>
           Andrej Karpathy released <a href={REPO} target="_blank" rel="noreferrer" style={link}>karpathy/llm-council</a> in
-          November 2025. He built it for {' '}
-          <a href={READING_THREAD} target="_blank" rel="noreferrer" style={link}>reading books alongside LLMs</a> —
-          the book is the subject, and the council is the lens:
+          November 2025, four days after {' '}
+          <a href={READER3} target="_blank" rel="noreferrer" style={link}>reader3</a>, a bare EPUB reader whose whole
+          purpose was to make it easy to “copy paste the contents of a chapter to an LLM, to read along.” The two are
+          halves of one idea: reader3 gets the text out of the book, and the council is what you paste it into.
+          Where reader3 says paste it to “your favourite LLM,” the council opens by replacing exactly that —
+          “instead of asking a question to your favorite LLM provider… you can group them into your LLM Council.”
+        </p>
+        <p style={p}>
+          So the intended use is <strong>reading</strong>: a passage in one hand, a question about it in the other.
+          The book is the subject and the council is the lens.
         </p>
         <blockquote style={quote}>
           “…a fun Saturday hack because I wanted to explore and evaluate a number of LLMs side by side
@@ -72,6 +80,7 @@ export default function AboutModal({ onClose }) {
         <h4 style={h}>Links</h4>
         <p style={{...p, margin:0}}>
           <a href={REPO} target="_blank" rel="noreferrer" style={link}>karpathy/llm-council</a> — the original ·{' '}
+          <a href={READER3} target="_blank" rel="noreferrer" style={link}>karpathy/reader3</a> — the reader it pairs with ·{' '}
           <a href={FORK} target="_blank" rel="noreferrer" style={link}>this fork's source</a>
         </p>
       </div>

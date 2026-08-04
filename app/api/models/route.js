@@ -29,14 +29,31 @@ export async function GET(req) {
         });
         if (!res.ok) throw new Error('Failed to fetch model catalog');
         const data = await res.json();
-        // Normalize subset of fields for UI
-        const models = (data.data || []).map(m => ({
-            id: m.id,
-            name: m.name,
-            pricing: m.pricing || {},
-            context_length: m.context_length,
-            description: m.description?.slice(0, 160) || ''
-        }));
+        // Normalize the fields the picker actually shows. Params are reduced to
+        // a few booleans so the client doesn't ship the full parameter list.
+        const models = (data.data || []).map(m => {
+            const params = m.supported_parameters || [];
+            const inputs = m.architecture?.input_modalities || [];
+            return {
+                id: m.id,
+                name: m.name,
+                provider: m.id.includes('/') ? m.id.split('/')[0] : 'other',
+                pricing: { prompt: m.pricing?.prompt, completion: m.pricing?.completion },
+                context_length: m.context_length ?? m.top_provider?.context_length ?? null,
+                max_completion_tokens: m.top_provider?.max_completion_tokens ?? null,
+                created: m.created ?? null,
+                modalities: inputs,
+                caps: {
+                    vision: inputs.includes('image'),
+                    files: inputs.includes('file'),
+                    tools: params.includes('tools'),
+                    reasoning: params.includes('reasoning') || params.includes('include_reasoning'),
+                    structured: params.includes('structured_outputs')
+                },
+                description: m.description?.slice(0, 400) || ''
+            };
+        });
+        models.sort((a, b) => (b.created || 0) - (a.created || 0));
         cache = { ts: now, data: { models, count: models.length } };
         return NextResponse.json(scoped(cache.data, gate.ctx));
     } catch (e) {

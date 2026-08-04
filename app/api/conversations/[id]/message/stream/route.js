@@ -3,7 +3,7 @@ import { stage2CollectRankings } from '../../../../../../lib/council/stage2Colle
 import { aggregateRankings } from '../../../../../../lib/council/aggregateRankings.js';
 import { stage3SynthesizeFinal } from '../../../../../../lib/council/stage3SynthesizeFinal.js';
 import { generateTitle } from '../../../../../../lib/council/generateTitle.js';
-import { getConversation, addUserMessage, addAssistantMessage, updateTitle, adapterName } from '../../../../../../lib/storage/index.js';
+import { getConversation, addUserMessage, addAssistantMessage, updateTitle, adapterName, addRunCost } from '../../../../../../lib/storage/index.js';
 import { DEFAULT_CHAIRPERSON_MODEL } from '../../../../../../lib/config/models.js';
 import { requireUser, ownsConversation, consumeRun } from '../../../../../../lib/auth/guard.js';
 
@@ -100,6 +100,11 @@ export async function POST(req, props) {
                 }
 
                 const totals = costTotals([...stage1, ...stage2Results, stage3]);
+                // Attribute spend to the caller so admin can see workshop cost
+                if (totals.cost && gate.ctx.session?.email) {
+                    try { await addRunCost(gate.ctx.session.email, totals.cost); }
+                    catch (e) { console.warn('[streamRoute] cost attribution failed:', e.message); }
+                }
                 await addAssistantMessage(c.id, {
                     stage1, stage2: stage2Results, stage3,
                     metadata: { label_to_model: labelToModel, aggregate_rankings: aggregate, totals }
