@@ -6,7 +6,8 @@ export async function GET() {
         const count = await conversationCount();
         return NextResponse.json({ status: 'ok', adapter: adapterName(), conversations: count, ts: Date.now() });
     } catch (e) {
-        // Storage unreachable (e.g. bad redis credentials) — report rather than 500
-        return NextResponse.json({ status: 'degraded', adapter: adapterName(), error: e.message, ts: Date.now() }, { status: 503 });
+        // Storage unreachable (e.g. bad redis credentials): the detail goes to the log, not the body
+        console.error('health: storage unreachable', e);
+        return NextResponse.json({ status: 'degraded', ts: Date.now() }, { status: 503 });
     }
 }

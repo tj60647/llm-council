@@ -103,7 +103,9 @@ QR, the code at ~7vw, and the URL.
 
 Feature-flagged on the presence of `AUTH_GITHUB_ID` + `AUTH_GITHUB_SECRET` +
 `AUTH_SECRET`; absent → open single-user mode (identity `local@anonymous`,
-admin). When enabled:
+admin) in local development only. In production (`NODE_ENV=production`, which
+includes every Vercel deployment) any missing one makes every guarded route
+answer 503 `auth_not_configured`. When enabled:
 
 - `lib/auth/session.js`: HS256 JWT session cookies (`jose`), 7-day TTL. The
   JWT carries identity only; authorization is read live per request.
