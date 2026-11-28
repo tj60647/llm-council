@@ -88,7 +88,7 @@ Create a `.env.local` file in the repo root:
 OPENROUTER_API_KEY=sk-or-v1-...   # Required — obtain from https://openrouter.ai/
 STORAGE_ADAPTER=memory             # Optional override: 'memory' | 'redis'. Unset = auto: redis when Upstash env vars exist, else memory
 # UPSTASH_REDIS_REST_URL= / UPSTASH_REDIS_REST_TOKEN=   # Enable Redis adapter (KV_REST_API_* names also accepted); required on Vercel
-# AUTH_GITHUB_ID= / AUTH_GITHUB_SECRET= / AUTH_SECRET=  # All three present => GitHub OAuth + groups/entitlements activate (lib/auth/); absent => open mode
+# AUTH_GITHUB_ID= / AUTH_GITHUB_SECRET= / AUTH_SECRET=  # All three present => GitHub OAuth + groups/entitlements activate (lib/auth/); absent => open mode in `next dev`, 503 on every guarded route in production
 # ADMIN_EMAILS=you@example.com                          # Comma-separated; full access + /admin page
 # MODEL_REGISTRY_URL=                                   # Catalog source; defaults to the OpenRouter Registry mirror. 'off' = query OpenRouter directly (loses retirement data)
 # QRSTUDIO_API_KEY= / QRSTUDIO_URL=                     # Optional: render join QRs via QR Studio's MCP (styled + logo). Unset = rendered locally with `qrcode`

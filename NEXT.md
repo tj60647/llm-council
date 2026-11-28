@@ -1,6 +1,6 @@
 # Next
 
-Updated: 2026-11-22
+Updated: 2026-11-28
 
 ## Where it stands
 
@@ -18,7 +18,7 @@ Phase B in `ROADMAP.md`: make the browser's stream parser buffer partial events 
 
 ## Blocked or waiting
 
-- None.
+- Pull request #4 (https://github.com/tj60647/llm-council/pull/4): refuse every request in production when a sign-in setting is missing. Waiting on your merge.
 
 ## Open questions
 

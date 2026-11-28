@@ -2,6 +2,8 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GET as getConversations, POST as createConversation } from '../../app/api/conversations/route.js';
 import { GET as getConversation } from '../../app/api/conversations/[id]/route.js';
 import { POST as postMessage } from '../../app/api/conversations/[id]/message/route.js';
+import { POST as streamMessage } from '../../app/api/conversations/[id]/message/stream/route.js';
+import { GET as getModels } from '../../app/api/models/route.js';
 import { GET as getMe } from '../../app/api/auth/me/route.js';
 import { POST as enroll } from '../../app/api/auth/enroll/route.js';
 import { POST as adminGroups } from '../../app/api/admin/groups/route.js';
@@ -72,6 +74,38 @@ describe('auth', () => {
         const res = await getConversations(anonReq());
         expect(res.status).toBe(200);
     });
+
+    it('keeps open mode for local development (next dev)', async () => {
+        vi.unstubAllEnvs();
+        vi.stubEnv('NODE_ENV', 'development');
+        expect((await getConversations(anonReq())).status).toBe(200);
+    });
+
+    // A slip in production (one sign-in setting missing) must close the site,
+    // never open it with everyone as admin.
+    it.each(['AUTH_GITHUB_ID', 'AUTH_GITHUB_SECRET', 'AUTH_SECRET'])(
+        'refuses every guarded route in production when %s is missing',
+        async (missing) => {
+            vi.stubEnv('NODE_ENV', 'production');
+            vi.stubEnv(missing, '');
+            const refused = async (res) => {
+                expect(res.status).toBe(503);
+                expect((await res.json()).error).toBe('auth_not_configured');
+            };
+            await refused(await getConversations(anonReq()));
+            await refused(await createConversation(anonReq({ models: ['model-a'] })));
+            await refused(await getConversation(anonReq(), routeProps({ id: 'any' })));
+            await refused(await postMessage(anonReq({ content: 'hi' }), routeProps({ id: 'any' })));
+            await refused(await streamMessage(anonReq({ content: 'hi' }), routeProps({ id: 'any' })));
+            await refused(await getModels(anonReq()));
+            await refused(await adminGroups(anonReq({ name: 'X' })));
+            await refused(await adminOverview(anonReq()));
+
+            const me = await (await getMe(anonReq())).json();
+            expect(me.status).toBe('not_configured');
+            expect(me.admin).toBe(false);
+        }
+    );
 
     it('rejects unauthenticated API calls when auth is on', async () => {
         const res = await getConversations(anonReq());
